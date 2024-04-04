@@ -1,7 +1,7 @@
 _target_: sri_maper.src.data.preprocessing.generate_raster_stacks
 raster_stacks:
   - raster_stack_path: ${data.tif_dir}/tungsten-skarn-natl.tif
-    raster_files_path: ${paths.data_dir}/raster_library
+    raster_files_path: ${paths.data_dir}/raster_library_d5
     raster_files:
       - "Geology/Geology_Lithology_Majority_Igneous_Extrusive_clipped_dilated.tif"
       - "Geology/Geology_Lithology_Majority_Igneous_Intrusive_Felsic_clipped_dilated.tif"

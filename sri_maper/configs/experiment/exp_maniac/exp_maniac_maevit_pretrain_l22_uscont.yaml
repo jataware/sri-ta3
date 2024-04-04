@@ -8,14 +8,15 @@ defaults:
 # all parameters below will be merged with parameters from default configurations set above
 # this allows you to overwrite only specified parameters
 
-tags: ["vit", "cUS", "mae-vit-pretrain"]
+tags: ["vit", "mae-vit-pretrain", "cont-US", "l22", "maniac"]
 task_name: "cmta3-pretrain-maevit"
 
 seed: 1234
 
 data:
+  window_size: 5
   batch_size: 1024
-  tif_dir: ${paths.data_dir}/H3/MaNiAC
+  tif_dir: ${paths.data_dir}/H3_dilation_5/MaNiAC
   downsample: false
   oversample: false
 
@@ -27,23 +28,23 @@ model:
   warmup_epoch: 1
   net:
     _target_: sri_maper.src.models.mae_vit.MAE_ViT
-    image_size: 33
-    patch_size: 3
+    image_size: ${data.window_size}
+    patch_size: 1
     input_dim: 14
     enc_dim: 256
     encoder_layer: 6
     encoder_head: 8
     dec_dim: 128
-    output_dim: 14
+    output_dim: ${model.net.input_dim}
     decoder_layer: 2
     decoder_head: 4
     mask_ratio: 0.75
   compile: false
   mc_samples: 100
-  
+
 trainer:
-  min_epochs: 1
-  max_epochs: 15
+  min_epochs: 10
+  max_epochs: 30
   limit_train_batches: 1.0
   limit_val_batches: 1.0
   limit_test_batches: 1.0
@@ -52,7 +53,7 @@ trainer:
 
 logger:
   wandb:
-    name: "maevit_pretrain_l22_uscont"
+    name: "maevit_pretrain_l22_uscont_maniac"
 
 callbacks:
   model_checkpoint:

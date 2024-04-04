@@ -1,6 +1,7 @@
 # @package _global_
 
 defaults:
+  - override /preprocess: mvt-natl.yaml
   - override /model: maevit_classifier.yaml
   - override /trainer: ddp
   - override /callbacks: default.yaml
@@ -8,47 +9,49 @@ defaults:
 # all parameters below will be merged with parameters from default configurations set above
 # this allows you to overwrite only specified parameters
 
-tags: ["ni_maniac", "mae-vit-classifier-cls"]
-task_name: "cmta3-classifier-maevit"
+tags: ["mvt", "ViT", "cont-US", "l22", "pretrained"]
+task_name: "cmta3-classifier-mvt"
 
 seed: 1234
-extract_attributions: true
+extract_attributions: false
 
 data:
-  tif_dir: ${paths.data_dir}/H3/MaNiAC
-  likely_neg_range: [0.75,1.0]
+  window_size: 5
+  tif_dir: ${paths.data_dir}/H3_dilation_5/MVT
+  likely_neg_range: [0.3, 0.6]
 
 model:
   optimizer:
     _target_: torch.optim.AdamW
-    lr: 1e-4
-    weight_decay: 1e-3
+    lr: 1e-3
+    weight_decay: 1e-2
   net:
     _target_: sri_maper.src.models.mae_vit_classifier.CLSClassifer
-    backbone_ckpt: "logs/cmta3-pretrain-maevit/runs/2024-03-14_16-19-36/checkpoints/ssim_0.907.ckpt"
+    backbone_ckpt: "logs/cmta3-pretrain-maevit/runs/2024-03-29_15-37-39/checkpoints/ssim_0.915-v1.ckpt"
     backbone_net:
       _target_: sri_maper.src.models.mae_vit.MAE_ViT
-      image_size: 33
-      patch_size: 3
-      input_dim: 14
+      image_size: ${data.window_size}
+      patch_size: 1
+      input_dim: 77
       enc_dim: 256
       encoder_layer: 6
       encoder_head: 8
       dec_dim: 128
-      output_dim: 14
+      output_dim: ${model.net.backbone_net.input_dim}
       decoder_layer: 2
       decoder_head: 4
-      mask_ratio: 0.75
-    freeze_backbone: false
+      mask_ratio: 0.0
+    freeze_backbone: true
     dropout_rate: 0.5
   compile: false
   mc_samples: 100
   gain: 1.0
-  smoothing: 0.2
-  extract_attributions: ${extract_attributions}
-  
+  smoothing: 0.3
+  # threshold: 0.5
+  # temperature: 1.503
+
 trainer:
-  min_epochs: 1
+  min_epochs: 100
   max_epochs: 100
   limit_train_batches: 1.0
   limit_val_batches: 1.0
@@ -58,7 +61,7 @@ trainer:
 
 logger:
   wandb:
-    name: "exp_ni_maevit_classifier_l22_uscont"
+    name: "ViT|pretrained|frozen|do_ll_bn_prelu_do_ll_bn_prelu_do_ll|lr=${model.optimizer.lr}"
 
 callbacks:
   model_checkpoint:
