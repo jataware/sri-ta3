@@ -3,7 +3,7 @@ from torch import nn, optim
 from itertools import islice
 import numpy as np
 
-from sri_maper.src.models.cma_module import CMALitModule
+# from sri_maper.src.models.cma_module import CMALitModule
 from sri_maper.src import utils
 log = utils.get_pylogger(__name__)
 
