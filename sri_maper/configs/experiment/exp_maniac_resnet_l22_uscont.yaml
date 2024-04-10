@@ -1,6 +1,7 @@
 # @package _global_
 
 defaults:
+  - override /preprocess: maniac-natl.yaml
   - override /model: resnet.yaml
   - override /trainer: ddp
   - override /callbacks: default.yaml
@@ -8,15 +9,16 @@ defaults:
 # all parameters below will be merged with parameters from default configurations set above
 # this allows you to overwrite only specified parameters
 
-tags: ["ni", "resnet"]
-task_name: "cmta3-train-all-l22"
+tags: ["ni", "resnet", "cont-US", "l22"]
+task_name: "cmta3-classifier-maniac"
 
 seed: 1234
-extract_attributions: true
+extract_attributions: false
 
 data:
-  tif_dir: ${paths.data_dir}/H3/MaNiAC
-  likely_neg_range: [0.75,1.0]
+  window_size: 5
+  tif_dir: ${paths.data_dir}/H3_dilation_5/MaNiAC
+  likely_neg_range: [0.6,0.8]
 
 model:
   optimizer:
@@ -44,7 +46,7 @@ trainer:
 
 logger:
   wandb:
-    name: "exp_ni_resnet_l22_uscan"
+    name: "resnet|l22|uscont"
 
 callbacks:
   model_checkpoint:

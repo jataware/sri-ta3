@@ -9,19 +9,19 @@ from sri_maper.src.models.cma_module_pretrain_mae import SSCMALitModule
 class DummyPatchDropLayer(torch.nn.Module):
     def __init__(self) -> None:
         super().__init__()
-    
+
     def forward(self, patches : torch.Tensor):
         return patches, None, None
 
 
 class CLSClassifer(torch.nn.Module):
-    def __init__(self, 
-        backbone_ckpt: str = None, 
+    def __init__(self,
+        backbone_ckpt: str = None,
         backbone_net: torch.nn.Module = None,
         freeze_backbone: bool = True,
         dropout_rate: Optional[float] = 0.5,
     ) -> None:
-    
+
         super().__init__()
         # encoder
         self.backbone = SSCMALitModule.load_from_checkpoint(backbone_ckpt, net=backbone_net).net.encoder if backbone_ckpt is not None else backbone_net.encoder
@@ -29,11 +29,26 @@ class CLSClassifer(torch.nn.Module):
         # optionally freezes backbone
         self.backbone.requires_grad_(not freeze_backbone)
         # classifier
+        # self.ff = torch.nn.Sequential(
+        #     torch.nn.Dropout(p=dropout_rate),
+        #     torch.nn.Linear(backbone_net.enc_dim, 1, bias=False)
+        # )
         self.ff = torch.nn.Sequential(
             torch.nn.Dropout(p=dropout_rate),
-            torch.nn.Linear(backbone_net.enc_dim, 1, bias=False)
+            torch.nn.Linear(backbone_net.enc_dim, backbone_net.enc_dim//2),
+            torch.nn.BatchNorm1d(backbone_net.enc_dim//2),
+
+            torch.nn.PReLU(),
+            torch.nn.Dropout(p=dropout_rate),
+            torch.nn.Linear(backbone_net.enc_dim//2, backbone_net.enc_dim//4),
+            torch.nn.BatchNorm1d(backbone_net.enc_dim//4),
+
+            torch.nn.PReLU(),
+            torch.nn.Dropout(p=dropout_rate),
+            torch.nn.Linear(backbone_net.enc_dim//4, 1, bias=False),
+
         )
-    
+
     def forward(self, img):
         # extracts features
         features, _, _ = self.backbone(img)
@@ -41,7 +56,7 @@ class CLSClassifer(torch.nn.Module):
         features = self.ff(features[:,0,:])
 
         return features
-    
+
     def activate_dropout(self):
         self.ff[0].train()
 
@@ -50,12 +65,12 @@ class CLSClassifer(torch.nn.Module):
 ###########################################################
 
 class PatchClassifier(torch.nn.Module):
-    def __init__(self, 
-        backbone_ckpt: str = None, 
+    def __init__(self,
+        backbone_ckpt: str = None,
         backbone_net: torch.nn.Module = None,
         freeze_backbone: bool = True,
     ) -> None:
-        
+
         super().__init__()
         # encoder
         self.backbone = SSCMALitModule.load_from_checkpoint(backbone_ckpt, net=backbone_net).net
@@ -65,7 +80,7 @@ class PatchClassifier(torch.nn.Module):
         # classifier
         self.pooling = torch.nn.AdaptiveAvgPool1d(1)
         self.ff = torch.nn.Linear(self.backbone.enc_dim, 1)
-           
+
     def forward(self, img):
         # extracts features, removing CLS token ->  [batch_sisze, num_of_patches, emb_dim]
         features, _, _ = self.backbone.encoder(img)[:,1:,:]
@@ -78,8 +93,8 @@ class PatchClassifier(torch.nn.Module):
 ##############################################################################################################################
 
 class AttnPatchClassifier(torch.nn.Module):
-    def __init__(self, 
-        backbone_ckpt: str = None, 
+    def __init__(self,
+        backbone_ckpt: str = None,
         backbone_net: torch.nn.Module = None,
         freeze_backbone: bool = True,
     ) -> None:
@@ -96,7 +111,7 @@ class AttnPatchClassifier(torch.nn.Module):
             torch.nn.Flatten(start_dim=1),
             torch.nn.Linear(feat_dim, 1)
         )
-           
+
     def forward(self, img):
         # extracts features ->  [batch_sisze, num_of_patches+1, emb_dim]
         features, _, _ = self.backbone.encoder(img)
@@ -105,12 +120,12 @@ class AttnPatchClassifier(torch.nn.Module):
         features = self.ff(features)
 
         return features
-    
+
 ##############################################################################################################################
 
 class ConvPatchClassifier(torch.nn.Module):
-    def __init__(self, 
-                 backbone_ckpt: str = None, 
+    def __init__(self,
+                 backbone_ckpt: str = None,
                  backbone_net: torch.nn.Module = None,
                  num_filters: int = 64,
                  kernel_size: int = 3,
@@ -126,7 +141,7 @@ class ConvPatchClassifier(torch.nn.Module):
         self.conv = torch.nn.Conv1d(in_channels=self.backbone.enc_dim, out_channels=num_filters, kernel_size=kernel_size, padding=kernel_size//2)
         self.pool = torch.nn.AdaptiveAvgPool1d(1)
         self.ff = torch.nn.Linear(num_filters, 1)
-           
+
     def forward(self, img):
         # extracts features, removing CLS token ->  [batch_sisze, num_of_patches, emb_dim]
         features, _, _ = self.backbone.encoder(img)[:,1:,:]

@@ -117,12 +117,15 @@ class TIFFDataModule(LightningDataModule):
                             X = X.detach().cpu().numpy()
                         return X[:, window_size//2, window_size//2]
                     init_feat_extractor = partial(simple_feat_extractor, window_size=self.data_train.window_size)
-                    self.data_train = dataset_utils.pu_downsample(self.data_train, init_feat_extractor, likely_neg_range=self.hparams.likely_neg_range, seed=self.hparams.seed)
+                    self.data_train = dataset_utils.pu_downsample(self.data_train, init_feat_extractor, multiplier=self.hparams.multiplier, likely_neg_range=self.hparams.likely_neg_range, seed=self.hparams.seed)
                 log.debug(f"Splitting base dataset into train / val / test.")
                 # random split
-                self.data_train, self.data_val, self.data_test = dataset_utils.random_proportionate_split(self.data_train, train_split=self.hparams.frac_train_split, seed=self.hparams.seed)
+                if self.hparams.frac_train_split < 1.0:
+                    self.data_train, self.data_val, self.data_test = dataset_utils.random_proportionate_split(self.data_train, train_split=self.hparams.frac_train_split, seed=self.hparams.seed)
+                else:
+                    _, self.data_val, self.data_test = dataset_utils.random_proportionate_split(self.data_train, train_split=0.5, seed=self.hparams.seed)
                 # oversample to balance
-                self.data_train = dataset_utils.balance_data(self.data_train, oversample=self.hparams.oversample, seed=self.hparams.seed)
+                self.data_train = dataset_utils.balance_data(self.data_train, multiplier=self.hparams.multiplier, oversample=self.hparams.oversample, seed=self.hparams.seed)
                 dataset_utils.store_samples(self.data_train, self.hparams.log_path, "train")
                 dataset_utils.store_samples(self.data_val, self.hparams.log_path, "valid")
                 dataset_utils.store_samples(self.data_test, self.hparams.log_path, "test")

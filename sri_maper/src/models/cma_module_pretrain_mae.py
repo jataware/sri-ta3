@@ -1,6 +1,7 @@
 from typing import Any, Dict, Tuple
 
 import torch
+import torch.nn.functional as F
 import math
 from pytorch_lightning import LightningModule
 from torchmetrics import MaxMetric, MeanMetric
@@ -108,14 +109,12 @@ class SSCMALitModule(LightningModule):
 
         self.val_ssim_best.reset()
         self.val_psnr_best.reset()
-    
+
     def compute_loss(
         self, img: torch.Tensor, pred: torch.Tensor, mask: torch.Tensor
     ) -> torch.Tensor:
-        
         # calculates L2 loss
         loss = torch.pow(pred - img, 2).mean()
-        
         return loss
 
     def model_step(
@@ -133,7 +132,6 @@ class SSCMALitModule(LightningModule):
         img, _ = batch
         pred_img, mask = self.forward(img)
         loss = self.compute_loss(img, pred_img, mask)
-        
         return loss, img, pred_img, mask
 
     def training_step(
@@ -174,8 +172,12 @@ class SSCMALitModule(LightningModule):
 
         # update and log metrics
         self.val_loss(loss.item())
-        self.val_ssim(img.detach() * mask.detach(), pred_img.detach() * mask.detach())
-        self.val_psnr(img.detach() * mask.detach(), pred_img.detach() * mask.detach())
+        if self.hparams.net.image_size < 11:
+            self.val_ssim(F.interpolate(img.detach(), size=(11, 11)), \
+                            F.interpolate(pred_img.detach(), size=(11, 11)))
+        else:
+            self.val_ssim(img.detach(), pred_img.detach())
+        self.val_psnr(img.detach(), pred_img.detach())
 
         self.log("val/loss", self.val_loss, on_step=False, on_epoch=True, prog_bar=True)
         self.log("val/ssim", self.val_ssim, on_step=False, on_epoch=True, prog_bar=True)
@@ -202,8 +204,12 @@ class SSCMALitModule(LightningModule):
 
         # update and log metrics
         self.test_loss(loss.item())
-        self.test_ssim(img.detach() * mask.detach(), pred_img.detach() * mask.detach())
-        self.test_psnr(img.detach() * mask.detach(), pred_img.detach() * mask.detach())
+        if self.hparams.net.image_size < 11:
+            self.test_ssim(F.interpolate(img.detach(), size=(11, 11)), \
+                            F.interpolate(pred_img.detach(), size=(11, 11)))
+        else:
+            self.test_ssim(img.detach(), pred_img.detach())
+        self.test_psnr(img.detach(), pred_img.detach())
 
         self.log("test/loss", self.test_loss, on_step=False, on_epoch=True, prog_bar=True)
         self.log("test/ssim", self.test_ssim, on_step=False, on_epoch=True, prog_bar=True)
@@ -237,9 +243,9 @@ class SSCMALitModule(LightningModule):
         # computes mean and std of MC samples
         means = preds.mean(dim=0).squeeze()
         stds = preds.std(dim=0).squeeze()
-        
+
         return torch.concat((torch.stack((batch[2], batch[3], means, stds), dim=1), attribution), dim=1)
-        
+
     def on_predict_epoch_end(self, results):
         self.trainer.results = torch.vstack(results[0]).cpu().numpy()
 

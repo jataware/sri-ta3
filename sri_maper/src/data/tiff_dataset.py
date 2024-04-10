@@ -80,13 +80,13 @@ class TiffDataset(Dataset):
             ds_valid_patches.append(valid_patches)
         # returns valid patches of ALL tiffs in dataset
         return np.vstack(ds_valid_patches)
-    
+
     @staticmethod
     def _generate_valid_patches(tif_file, window_size):
         with rio_open(tif_file, "r") as tif:
             tif_height = tif.height
             tif_width = tif.width
-        
+
         # extracts the pixel coords of raster
         rows, cols = np.mgrid[0:tif_height:1,0:tif_width:1].reshape((-1, (tif_width)*(tif_height)))
 
@@ -110,17 +110,17 @@ class TiffDataset(Dataset):
 
     def __len__(self):
         return self.valid_patches.shape[0]
-    
+
     def __getitem__(self, idx):
         # loads the patch's location and label
         col = int(self.valid_patches[idx,0])
         row = int(self.valid_patches[idx,1])
         label = self.valid_patches[idx,2]
         source_tif = int(self.valid_patches[idx,-1])
-        
+
         # loads the patch's data
         patch = self.tif_data[source_tif][:-1,row:row+self.window_size,col:col+self.window_size]
-        
+
         if self.stage == "predict":
             lon = self.valid_patches[idx,-3]
             lat = self.valid_patches[idx,-2]
@@ -135,7 +135,7 @@ def validate_patches(chunk, window_size, tif_file):
         chunk_iter = tqdm(zip(chunk[0],chunk[1]), total=len(chunk[0]))
     else:
         chunk_iter = zip(chunk[0],chunk[1])
-    
+
     # validates the patches made from pixel locations in chunks
     records = []
     with rio_open(tif_file) as f:
@@ -144,7 +144,7 @@ def validate_patches(chunk, window_size, tif_file):
             if patch.shape != (f.count, window_size, window_size) or np.isnan(patch).any(): continue
             records.append([x, y, patch[-1, window_size//2, window_size//2]])
         tif_tfm = f.transform
-    
+
     # creates dataframe cataloging valid patches
     records = np.asarray(records)
 
@@ -156,23 +156,23 @@ def validate_patches(chunk, window_size, tif_file):
         records = np.hstack([records, pts])
     else:
         records = np.empty(shape=(0,5))
-    
+
     return records
 
 
 def spatial_cross_val_split(
-    ds: Dataset, 
-    k: int = 5, 
+    ds: Dataset,
+    k: int = 5,
     test_set: int = 0,
     val_set: int = 1,
-    split_col: str = "lat", 
+    split_col: str = "lat",
     nbins: Union[int, None] = None,
     samples_per_bin: int = 3.0
 ):
     log.info(f"Splitting patches with spatial cross-val (2-3 min)")
     ds_df = pd.DataFrame(
-        data=ds.valid_patches, 
-        index=np.arange(ds.valid_patches.shape[0]), 
+        data=ds.valid_patches,
+        index=np.arange(ds.valid_patches.shape[0]),
         columns=["x","y","label","lon", "lat","source"]
     )
     # select only the deposit/occurence/neighbor present samples
@@ -193,31 +193,31 @@ def spatial_cross_val_split(
     # split into train / test data
     test_valid_patches = ds_df[ds_df["group"] == test_set].drop(columns=[f"{split_col}_bin","group"]).reset_index(drop=True).values
     test_ds = TiffDataset(
-        tif_files=ds.tif_files, 
+        tif_files=ds.tif_files,
         tif_data=ds.tif_data,
         tif_tags=ds.tif_tags,
         tif_meta=ds.tif_meta,
-        window_size=ds.window_size, 
+        window_size=ds.window_size,
         stage=ds.stage,
         valid_patches=test_valid_patches,
     )
     val_valid_patches = ds_df[ds_df["group"] == val_set].drop(columns=[f"{split_col}_bin","group"]).reset_index(drop=True).values
     val_ds = TiffDataset(
-        tif_files=ds.tif_files, 
+        tif_files=ds.tif_files,
         tif_data=ds.tif_data,
         tif_tags=ds.tif_tags,
         tif_meta=ds.tif_meta,
-        window_size=ds.window_size, 
+        window_size=ds.window_size,
         stage=ds.stage,
         valid_patches=val_valid_patches
     )
     ds_valid_patches = ds_df[(ds_df["group"] != test_set) & (ds_df["group"] != val_set)].drop(columns=[f"{split_col}_bin","group"]).reset_index(drop=True).values
     ds = TiffDataset(
-        tif_files=ds.tif_files, 
+        tif_files=ds.tif_files,
         tif_data=ds.tif_data,
         tif_tags=ds.tif_tags,
         tif_meta=ds.tif_meta,
-        window_size=ds.window_size, 
+        window_size=ds.window_size,
         stage=ds.stage,
         valid_patches=ds_valid_patches,
     )
@@ -396,21 +396,21 @@ def pu_downsample(
     u_dist = pu_dist[len(p_feats):]
     # rank unlabeled by negativity likelihood, taking % most negative
     u_dist_sort_idx = np.argsort(u_dist)
-    
+
     # selects the range for likely negative sampling
     likely_negatives_idx = u_dist_sort_idx[int(len(u_dist_sort_idx)*likely_neg_range[0]):int(len(u_dist_sort_idx)*likely_neg_range[1])]
     ds_df_n = ds_df_u.iloc[likely_negatives_idx]
     # randomly downsample "likely" negatives
     num_negatives = int (ds_df_p.shape[0]) * multiplier
     ds_df_n = ds_df_n.sample(n=num_negatives, replace=False, random_state=seed)
-    # combine positives / negatives 
+    # combine positives / negatives
     ds_df = pd.concat([ds_df_n, ds_df_p], axis=0).reset_index(drop=True)
     ds = TiffDataset(
-        tif_files=ds.tif_files, 
+        tif_files=ds.tif_files,
         tif_data=ds.tif_data,
         tif_tags=ds.tif_tags,
         tif_meta=ds.tif_meta,
-        window_size=ds.window_size, 
+        window_size=ds.window_size,
         stage=ds.stage,
         valid_patches=ds_df.values,
     )
@@ -437,7 +437,7 @@ def balance_data(
         num_negatives = int (ds_df_p.shape[0]) * multiplier
         ds_df_n = ds_df_n.sample(n=num_negatives, replace=False, random_state=seed)
         ds_df = pd.concat([ds_df_n, ds_df_p], axis=0).reset_index(drop=True)
-    
+
     if oversample:
         # oversample positives
         sampler = RandomOverSampler(sampling_strategy="minority", shrinkage=None, random_state=seed)
@@ -445,11 +445,11 @@ def balance_data(
         ds_df.insert(2, "label", y)
 
     ds = TiffDataset(
-        tif_files=ds.tif_files, 
+        tif_files=ds.tif_files,
         tif_data=ds.tif_data,
         tif_tags=ds.tif_tags,
         tif_meta=ds.tif_meta,
-        window_size=ds.window_size, 
+        window_size=ds.window_size,
         stage=ds.stage,
         valid_patches=ds_df.values,
     )

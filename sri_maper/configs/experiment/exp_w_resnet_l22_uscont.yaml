@@ -9,16 +9,18 @@ defaults:
 # all parameters below will be merged with parameters from default configurations set above
 # this allows you to overwrite only specified parameters
 
-tags: ["w", "resnet"]
-task_name: "cmta3-train-all-l22"
+tags: ["W", "resnet", "cont-US", "l22"]
+task_name: "cmta3-classifier-W"
 
 seed: 1234
-extract_attributions: true
+extract_attributions: false
 
 data:
-  tif_dir: ${paths.data_dir}/H3/Tungsten-Skarn
-  likely_neg_range: [0.2,0.4]
-  
+  window_size: 5
+  tif_dir: ${paths.data_dir}/H3_dilation_5/Tungsten-Skarn
+  likely_neg_range: [0.25,0.75]
+  frac_train_split: 0.5
+
 model:
   optimizer:
     _target_: torch.optim.AdamW
@@ -36,7 +38,7 @@ model:
   extract_attributions: ${extract_attributions}
 
 trainer:
-  min_epochs: 1
+  min_epochs: 15
   max_epochs: 100
   limit_train_batches: 1.0
   limit_val_batches: 1.0
@@ -45,7 +47,7 @@ trainer:
 
 logger:
   wandb:
-    name: "exp_w_resnet_l22_uscan"
+    name: "resnet|l22|uscont"
 
 callbacks:
   model_checkpoint:

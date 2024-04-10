@@ -3,7 +3,7 @@ from typing import Any, Dict, Tuple
 import torch
 from pytorch_lightning import LightningModule
 from torchmetrics import MaxMetric, MeanMetric
-from torchmetrics.classification import BinaryAUROC, BinaryAveragePrecision, MulticlassAccuracy, BinaryAccuracy, BinaryMatthewsCorrCoef, BinaryF1Score
+from torchmetrics.classification import BinaryAUROC, BinaryAveragePrecision, MulticlassAccuracy, BinaryAccuracy, BinaryMatthewsCorrCoef, BinaryF1Score, BinaryRecall
 from captum.attr import IntegratedGradients
 import pandas as pd
 
@@ -89,6 +89,8 @@ class CMALitModule(LightningModule):
         self.test_acc = BinaryAccuracy(threshold=self.hparams.threshold)
         self.test_mcc = BinaryMatthewsCorrCoef(threshold=self.hparams.threshold)
         self.test_f1 = BinaryF1Score(threshold=self.hparams.threshold)
+        self.test_recall = BinaryRecall(threshold=self.hparams.threshold)
+        self.test_acc1 = BinaryAccuracy(threshold=self.hparams.threshold)
 
         # for averaging loss across batches
         self.train_loss = MeanMetric()
@@ -107,7 +109,7 @@ class CMALitModule(LightningModule):
         :return: A tensor of logits.
         """
         return self.net(x)
-    
+
     def calibrated_forward(self, x: torch.Tensor) -> torch.Tensor:
         """Perform a calibrated forward pass through the model `self.net`.
 
@@ -216,6 +218,8 @@ class CMALitModule(LightningModule):
         self.test_acc(preds.squeeze(), targets)
         self.test_mcc(preds.squeeze(), targets)
         self.test_f1(preds.squeeze(), targets)
+        self.test_recall(preds.squeeze(), targets)
+        self.test_acc1(preds.squeeze(), torch.ones_like(preds.squeeze()))
 
         self.log("test/loss", self.test_loss, on_step=False, on_epoch=True, prog_bar=True)
         self.log("test/auc", self.test_auc, on_step=False, on_epoch=True, prog_bar=True)
@@ -224,6 +228,8 @@ class CMALitModule(LightningModule):
         self.log("test/acc", self.test_acc, on_step=False, on_epoch=True, prog_bar=True)
         self.log("test/mcc", self.test_mcc, on_step=False, on_epoch=True, prog_bar=True)
         self.log("test/f1", self.test_f1, on_step=False, on_epoch=True, prog_bar=True)
+        self.log("test/recall", self.test_recall, on_step=False, on_epoch=True, prog_bar=True)
+        self.log("test/prob1", self.test_acc1, on_step=False, on_epoch=True, prog_bar=True)
 
     def on_test_epoch_end(self) -> None:
         """Lightning hook that is called when a test epoch ends."""
@@ -263,11 +269,11 @@ class CMALitModule(LightningModule):
         # computes mean and std of MC samples
         means = preds.mean(dim=0).squeeze()
         stds = preds.std(dim=0).squeeze()
-        
+
         results = torch.stack((batch[2], batch[3], means, stds), dim=-1)
         if self.hparams.extract_attributions: results = torch.concat((results, attribution), dim=-1)
         return results
-        
+
     def on_predict_epoch_end(self, results):
         results = torch.concat(results[0]).cpu().numpy()
         cols = ["lon","lat","mean","std"] + [f"attr{n}" for n in range(results.shape[-1]-4)]
@@ -316,7 +322,7 @@ class CMALitModule(LightningModule):
                 },
             }
         return {"optimizer": optimizer}
-    
+
     def set_temperature(self, temperature: float) -> None:
         self.hparams.temperature = temperature
 

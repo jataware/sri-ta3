@@ -9,26 +9,27 @@ defaults:
 # all parameters below will be merged with parameters from default configurations set above
 # this allows you to overwrite only specified parameters
 
-tags: ["mvt", "resnet"]
-task_name: "cmta3-train-all-l22"
+tags: ["mvt", "resnet", "cont-US", "l22"]
+task_name: "cmta3-classifier-mvt"
 
 seed: 1234
-extract_attributions: true
+extract_attributions: false
 
 data:
-  tif_dir: ${paths.data_dir}/H3/MVT
-  likely_neg_range: [0.4, 0.5]
+  window_size: 5
+  tif_dir: ${paths.data_dir}/H3_dilation_5/MVT
+  likely_neg_range: [0.3, 0.6]
 
 model:
   optimizer:
     _target_: torch.optim.AdamW
-    lr: 1e-4
+    lr: 1e-3
     weight_decay: 1e-2
   net:
     _target_: sri_maper.src.models.resnet.ResNet
     num_input_channels: 77
     num_output_classes: 1
-    dropout_rate: 0.6
+    dropout_rate: 0.5
   compile: false
   gain: 1.0
   mc_samples: 100
@@ -45,7 +46,7 @@ trainer:
 
 logger:
   wandb:
-    name: "exp_mvt_resnet_l22_uscont"
+    name: "resnet|l22|uscont"
 
 callbacks:
   model_checkpoint:
