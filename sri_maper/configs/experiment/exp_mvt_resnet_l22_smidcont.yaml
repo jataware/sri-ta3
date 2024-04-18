@@ -1,7 +1,7 @@
 # @package _global_
 
 defaults:
-  - override /preprocess: maniac-natl.yaml
+  - override /preprocess: mvt-smidcont.yaml
   - override /model: resnet.yaml
   - override /trainer: ddp
   - override /callbacks: default.yaml
@@ -9,21 +9,21 @@ defaults:
 # all parameters below will be merged with parameters from default configurations set above
 # this allows you to overwrite only specified parameters
 
-tags: ["ni", "resnet", "cont-US", "l22"]
-task_name: "cmta3-classifier-maniac"
+tags: ["mvt", "resnet", "smidcont-US"]
+task_name: "cmta3-classifier-mvt"
 
 seed: 1234
 enable_attributions: false
 
 data:
   window_size: 5
-  tif_dir: ${paths.data_dir}/H3_dilation_5/MaNiAC
-  likely_neg_range: [0.6,0.8]
+  tif_dir: ${paths.data_dir}/H3_dilation_5/MVT_smidcont
+  likely_neg_range: [0.3, 0.6]
 
 model:
   net:
-    num_input_channels: 14
-  smoothing: 0.2
+    num_input_channels: 2
+  smoothing: 0.3
 
 trainer:
   min_epochs: 1
@@ -35,7 +35,7 @@ trainer:
 
 logger:
   wandb:
-    name: "resnet|l22|uscont"
+    name: "resnet|l22|smidcont"
 
 callbacks:
   model_checkpoint:

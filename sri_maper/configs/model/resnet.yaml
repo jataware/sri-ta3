@@ -24,4 +24,7 @@ compile: false
 
 gain: 1.0
 
+extract_attributions: ${enable_attributions}
 mc_samples: 100
+
+smoothing: 0.1

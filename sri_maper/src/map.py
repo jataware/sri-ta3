@@ -69,6 +69,7 @@ def build_map(cfg: DictConfig) -> Tuple[dict, dict]:
     trainer.predict(model=model, datamodule=datamodule)
     
     log.info(f"GPU:{trainer.strategy.global_rank} finished!")
+    map_paths = None
     if trainer.strategy.global_rank == 0:
         log.info(f"GPU:{trainer.strategy.global_rank} is outputting map GeoTiff!")
         # read all GPU CSVs
