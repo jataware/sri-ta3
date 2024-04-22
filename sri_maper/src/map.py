@@ -64,6 +64,8 @@ def build_map(cfg: DictConfig) -> Tuple[dict, dict]:
         model.set_temperature(opt_temp)
     else:
         model.set_temperature(cfg.model.temperature)
+    
+    model.hparams.extract_attributions = cfg.model.extract_attributions
 
     log.info("Starting map build!")
     trainer.predict(model=model, datamodule=datamodule)
@@ -79,7 +81,7 @@ def build_map(cfg: DictConfig) -> Tuple[dict, dict]:
         res_df = pd.concat(res_df, ignore_index=True)
         
         tif_file_path = f"{cfg.paths.output_dir}"
-        map_paths = utils.write_tif(res_df.values, tif_file_path, cfg.extract_attributions, datamodule)
+        map_paths = utils.write_tif(res_df.values, tif_file_path, cfg.enable_attributions, datamodule)
 
     return map_paths, object_dict
 

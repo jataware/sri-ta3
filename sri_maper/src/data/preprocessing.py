@@ -73,9 +73,15 @@ def generate_raster_stack(
         new_raster_data = raster_df[f"{tif}"].values.reshape(raster_shapes[i])
         new_raster_data = np.ma.masked_array(new_raster_data, mask=~rasters_msk[i], fill_value=np.nan)
         new_rasters_data.append(new_raster_data)
+
+    # storing pre-dilation NaNs locations
+    nan_mask = np.isnan(new_rasters_data[-1])
     
     # dilates the rasters
     new_rasters_data = [fillnodata(new_raster_data, max_search_distance=dilation_size) for new_raster_data in new_rasters_data]
+
+    # overwriting unwanted label dilations
+    new_rasters_data[-1][nan_mask & ~np.isnan(new_rasters_data[-1])] = 0.
 
     # generates and saves raster stack
     raster_stack_meta = rasters[0].meta

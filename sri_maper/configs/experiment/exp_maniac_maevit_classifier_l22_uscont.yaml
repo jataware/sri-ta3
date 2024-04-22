@@ -16,8 +16,8 @@ enable_attributions: false
 
 data:
   window_size: 5
-  tif_dir: ${paths.data_dir}/H3_dilation_5/MaNiAC
-  likely_neg_range: [0.5,0.8]
+  tif_dir: ${paths.data_dir}/H3/MaNiAC
+  likely_neg_range: [0.4,0.7]
 
 model:
   net:
@@ -35,8 +35,8 @@ model:
       decoder_layer: 2
       decoder_head: 4
       mask_ratio: 0.0
-    dropout_rate: 0.6
-  smoothing: 0.3
+    dropout_rate: 0.5
+  smoothing: 0.2
 
 trainer:
   min_epochs: 100

@@ -17,7 +17,7 @@ enable_attributions: false
 
 data:
   window_size: 5
-  tif_dir: ${paths.data_dir}/H3_dilation_5/Tungsten-Skarn
+  tif_dir: ${paths.data_dir}/H3/Tungsten-Skarn
   likely_neg_range: [0.25,0.75]
 
 model:
