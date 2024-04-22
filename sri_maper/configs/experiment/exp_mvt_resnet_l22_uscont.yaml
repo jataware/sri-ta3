@@ -13,28 +13,17 @@ tags: ["mvt", "resnet", "cont-US", "l22"]
 task_name: "cmta3-classifier-mvt"
 
 seed: 1234
-extract_attributions: false
+enable_attributions: false
 
 data:
   window_size: 5
-  tif_dir: ${paths.data_dir}/H3_dilation_5/MVT
+  tif_dir: ${paths.data_dir}/H3/MVT
   likely_neg_range: [0.3, 0.6]
 
 model:
-  optimizer:
-    _target_: torch.optim.AdamW
-    lr: 1e-3
-    weight_decay: 1e-2
   net:
-    _target_: sri_maper.src.models.resnet.ResNet
     num_input_channels: 77
-    num_output_classes: 1
-    dropout_rate: 0.5
-  compile: false
-  gain: 1.0
-  mc_samples: 100
   smoothing: 0.3
-  extract_attributions: ${extract_attributions}
 
 trainer:
   min_epochs: 1

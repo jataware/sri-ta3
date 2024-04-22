@@ -14,7 +14,7 @@ class DummyPatchDropLayer(torch.nn.Module):
         return patches, None, None
 
 
-class CLSClassifer(torch.nn.Module):
+class CLSClassifier(torch.nn.Module):
     def __init__(self,
         backbone_ckpt: str = None,
         backbone_net: torch.nn.Module = None,

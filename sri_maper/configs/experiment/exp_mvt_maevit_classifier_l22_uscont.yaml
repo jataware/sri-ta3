@@ -13,20 +13,15 @@ tags: ["mvt", "ViT", "cont-US", "l22", "pretrained"]
 task_name: "cmta3-classifier-mvt"
 
 seed: 1234
-extract_attributions: false
+enable_attributions: false
 
 data:
   window_size: 5
-  tif_dir: ${paths.data_dir}/H3_dilation_5/MVT
+  tif_dir: ${paths.data_dir}/H3/MVT
   likely_neg_range: [0.3, 0.6]
 
 model:
-  optimizer:
-    _target_: torch.optim.AdamW
-    lr: 1e-3
-    weight_decay: 1e-2
   net:
-    _target_: sri_maper.src.models.mae_vit_classifier.CLSClassifer
     backbone_ckpt: "logs/cmta3-pretrain-maevit/runs/2024-03-29_15-37-39/checkpoints/ssim_0.915-v1.ckpt"
     backbone_net:
       _target_: sri_maper.src.models.mae_vit.MAE_ViT
@@ -41,14 +36,8 @@ model:
       decoder_layer: 2
       decoder_head: 4
       mask_ratio: 0.0
-    freeze_backbone: true
     dropout_rate: 0.5
-  compile: false
-  mc_samples: 100
-  gain: 1.0
   smoothing: 0.3
-  # threshold: 0.5
-  # temperature: 1.503
 
 trainer:
   min_epochs: 100
@@ -57,7 +46,6 @@ trainer:
   limit_val_batches: 1.0
   limit_test_batches: 1.0
   val_check_interval: 0.5
-  # gradient_clip_val: 1.0
 
 logger:
   wandb:

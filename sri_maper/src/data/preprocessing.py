@@ -4,6 +4,7 @@ from pathlib import Path
 from tqdm import tqdm
 import pandas as pd
 import numpy as np
+from rasterio.fill import fillnodata
 import rasterio
 from sri_maper.src import utils
 
@@ -16,6 +17,8 @@ def generate_raster_stacks(raster_stacks: List):
             generate_raster_stack(
                 raster_stack.raster_stack_path,
                 raster_stack.raster_files_path,
+                raster_stack.dilation_size,
+                raster_stack.outlier_removal,
                 raster_stack.raster_files,
                 raster_stack.raster_files_types,
             )
@@ -23,6 +26,8 @@ def generate_raster_stacks(raster_stacks: List):
 def generate_raster_stack(
     raster_stack_path: Path,
     raster_files_path: Path,
+    dilation_size: int,
+    outlier_removal: bool,
     raster_files: List[str],
     raster_files_types: List[str],
 ):
@@ -56,11 +61,11 @@ def generate_raster_stack(
         raster_df[f"{raster_files[i]}"] = raster_data.filled().flatten()
     raster_type_dict = \
         {raster_file: raster_type for raster_file, raster_type in zip(raster_files, raster_files_types)}
-    raster_df = raster_df.astype(raster_type_dict)
 
     # removes outliers and normalizes
-    raster_df = tukey_remove_outliers(raster_df)
-    raster_df = normalize_df(raster_df)
+    if outlier_removal:
+        raster_df = tukey_remove_outliers(raster_df, raster_type_dict)
+    raster_df = normalize_df(raster_df, raster_type_dict)
 
     # extracts masked numpy arrays from the from dataframe
     new_rasters_data = []
@@ -68,6 +73,15 @@ def generate_raster_stack(
         new_raster_data = raster_df[f"{tif}"].values.reshape(raster_shapes[i])
         new_raster_data = np.ma.masked_array(new_raster_data, mask=~rasters_msk[i], fill_value=np.nan)
         new_rasters_data.append(new_raster_data)
+
+    # storing pre-dilation NaNs locations
+    nan_mask = np.isnan(new_rasters_data[-1])
+    
+    # dilates the rasters
+    new_rasters_data = [fillnodata(new_raster_data, max_search_distance=dilation_size) for new_raster_data in new_rasters_data]
+
+    # overwriting unwanted label dilations
+    new_rasters_data[-1][nan_mask & ~np.isnan(new_rasters_data[-1])] = 0.
 
     # generates and saves raster stack
     raster_stack_meta = rasters[0].meta
@@ -80,16 +94,17 @@ def generate_raster_stack(
         tags["ns"] = "evidence_layers"
         raster_stack.update_tags(**tags)
         for idx, new_raster_data in enumerate(new_rasters_data):
-            raster_stack.write_band(idx+1, new_raster_data.filled())
+            raster_stack.write_band(idx+1, new_raster_data)
 
 
 def tukey_remove_outliers(
     df, 
+    df_types,
     multiplier=1.5, 
     replacement_percentile=0.05
 ):
     for col in df.columns:
-        if df[col].dtype == "bool": continue
+        if df_types[col] == "bool": continue
         # get the IQR
         Q1 = df.loc[:,col].quantile(0.25)
         Q3 = df.loc[:,col].quantile(0.75)
@@ -106,10 +121,11 @@ def tukey_remove_outliers(
 
 
 def normalize_df(
-    df
+    df,
+    df_types
 ):
     for col in df.columns:
-        if df[col].dtype == "bool": continue
+        if df_types[col] == "bool": continue
         df[col] = (df[col]-df[col].mean()) / df[col].std()
     return df
 

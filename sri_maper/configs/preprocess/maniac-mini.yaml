@@ -1,7 +1,9 @@
 _target_: sri_maper.src.data.preprocessing.generate_raster_stacks
 raster_stacks:
-  - raster_stack_path: ${data.tif_dir}/maniac-mini.tif
-    raster_files_path: ${paths.data_dir}/maniac_mini
+  - raster_stack_path: ${data.tif_dir}/maniac-mini_d${data.window_size}.tif
+    raster_files_path: ${paths.data_dir}/raster_libraries/maniac_mini_raster_library
+    dilation_size: ${data.window_size}
+    outlier_removal: false
     raster_files:
       - "Geophysics_LAB_clipped_dilated_mini.tif"
       - "Geophysics_LAB_HGM_clipped_dilated_mini.tif"

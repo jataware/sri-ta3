@@ -45,9 +45,6 @@ train: True
 # lightning chooses best weights based on the metric specified in checkpoint callback
 test: True
 
-# set True to tune model's learning rate and batch size (only supported for single GPU/CPU)
-tune: False
-
 # simply provide checkpoint path to resume training
 ckpt_path: null
 

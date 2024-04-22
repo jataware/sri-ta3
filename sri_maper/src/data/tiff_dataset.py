@@ -36,21 +36,22 @@ class TiffDataset(Dataset):
         window_size: int = 33,
         stage: Union[np.ndarray, None] = None,
     ):
+        # sets object variables
+        self.window_size = window_size
+        self.stage = stage
+
         # loads tif files in MP compatible format
         self.tif_files, self.tif_data, self.tif_tags, self.tif_meta = self._load_tif_files(tif_dir, tif_files, tif_data, tif_tags, tif_meta)
 
         # loads VALID patches within all tiffs of dataset
         self.valid_patches = self._load_valid_patches(self.tif_files, window_size) if valid_patches is None else valid_patches
 
-        # sets remaining object variables
-        self.window_size = window_size
-        self.stage = stage
-
     def _load_tif_files(self, tif_dir, tif_files, tif_data, tif_tags, tif_meta):
         # sets List[str] of tif files
         assert (tif_files is None and tif_dir is not None) or (tif_files is not None and tif_dir is None), "tif_dir and tif_files BOTH set."
         if tif_files is None:
-            tif_files = glob(str(Path(tif_dir) / Path("*.tif")))
+            # tif files loaded with correct window size ONLY
+            tif_files = glob(str(Path(tif_dir) / Path(f"*_d{self.window_size}.tif")))
             tif_data = []
             for tif_file in tif_files:
                 log.info(f"Loading tif data for for {tif_file}")
