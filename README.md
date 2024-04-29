@@ -179,14 +179,20 @@ If these troubleshooting steps did not resolve your problem, please contact Ange
 
 ### Recreate Existing CMA Experiments
 
-Train & Test national-scale CMAs using ResNet:
+Train & Test CMA models using ResNet:
 ```bash
-# Lead-Zinc MVT
+# National Lead-Zinc MVT
 python sri_maper/src/train.py experiment=exp_mvt_resnet_l22_uscont
-# Magmatic Nickel
+# National Magmatic Nickel
 python sri_maper/src/train.py experiment=exp_maniac_resnet_l22_uscont
-# Tungsten-skarn
+# National Tungsten-skarn
 python sri_maper/src/train.py experiment=exp_w_resnet_l22_uscont
+# National Porphyry Copper
+python sri_maper/src/train.py experiment=exp_cu_resnet_l22_uscont
+# Regional Mafic Magmatic Nickel-Cobalt in Upper-Midwest
+python sri_maper/src/train.py experiment=exp_mamanico_resnet_umidwest
+# Regional Tungsten-skarn in Yukon-Tanana Upland
+python sri_maper/src/train.py experiment=exp_w_resnet_ytu
 ```
 Pretrain, Train, and Test national-scale MVT Lead-Zinc and Tungsten-skarn CMAs using MAE:
 ```bash
@@ -206,6 +212,28 @@ python sri_maper/src/train.py experiment=exp_maniac_maevit_classifier_l22_uscont
 ```
 Note: the MAE MaNiAC pretraining differs from the MVT Lead-Zinc and Tungsten-skarn ONLY because it was decided at Hackathon 2 that 14 evidence layers would be used (instead of the 77 available at national scale). One can just as easily modify the preprocessing config of the MAE MaNiAC training to use the same evidence layers at MVT Lead-Zinc and Tungsten-skarn.
 
+Pretrain, Train, and Test National Porphyry Copper CMA using MAE:
+```bash
+# pretrains the MAE checkpoint (22 evidence layers)
+python sri_maper/src/pretrain.py experiment=exp_cu_maevit_pretrain_l22_uscont
+# trains & tests Tungsten-skarn in Yukon-Tanana Upland
+python sri_maper/src/train.py experiment=exp_cu_maevit_classifier_l22_uscont model.net.backbone_ckpt=logs/PATH_TO_PRETRAINED_CHECKPOINT_ABOVE/checkpoint.ckpt
+```
+Pretrain, Train, and Test regional-scale Mafic Magmatic Nickel-Cobalt in Upper-Midwest CMA using MAE:
+```bash
+# pretrains the MAE checkpoint (28 evidence layers)
+python sri_maper/src/pretrain.py experiment=exp_mamanico_maevit_pretrain_umidwest
+# trains & tests Mafic Magmatic Nickel-Cobalt in Upper-Midwest
+python sri_maper/src/train.py experiment=exp_mamanico_maevit_classifier_umidwest model.net.backbone_ckpt=logs/PATH_TO_PRETRAINED_CHECKPOINT_ABOVE/checkpoint.ckpt
+```
+Pretrain, Train, and Test regional-scale Tungsten-skarn in Yukon-Tanana Upland CMA using MAE:
+```bash
+# pretrains the MAE checkpoint (18 evidence layers)
+python sri_maper/src/pretrain.py experiment=exp_w_maevit_pretrain_ytu
+# trains & tests Tungsten-skarn in Yukon-Tanana Upland
+python sri_maper/src/train.py experiment=exp_w_maevit_classifier_ytu model.net.backbone_ckpt=logs/PATH_TO_PRETRAINED_CHECKPOINT_ABOVE/checkpoint.ckpt
+```
+
 ### Build Maps with Trained Models
 
 In the Microsoft Sharepoint folder (see Background under [Data Setup](##data-setup)) we provide trained classification model checkpoints for all existing experiments. Please download the corresponding model checkpoints you would like to use and place them in the [ckpts](./sri_maper/ckpts/) folder. The commands below show how to build the prospectivity map for each CMA using the model checkpoint.
@@ -213,27 +241,42 @@ In the Microsoft Sharepoint folder (see Background under [Data Setup](##data-set
 Pretrained model performance using defined experiment configs:
 | **F1-score**       | **ResNet** | **MAE** |
 |--------------------|------------|---------|
-| Lead-Zinc MVT natl | 61.5       | 68.6    |
-| Magmatic Nickel    | 85.7       | 86.5    |
-| Tungsten-skarn     | 55.8       | 61.1    |
+| Lead-Zinc MVT national | 61.5       | 68.6    |
+| Magmatic Nickel national | 85.7       | 86.5    |
+| Tungsten-skarn national | 55.8       | 61.1    |
+| Porphyry Copper national | 57.6       | 60.3    |
+| Mafic Magmatic Nickel-Cobalt in Upper-Midwest     | 33.3       | 60.0    |
+| Tungsten-skarn in Yukon-Tanana Upland     | 55.8       | 61.1    |
 
-Build national-scale prospectivity map using ResNet model checkpoints:
+Build prospectivity maps using ResNet model checkpoints:
 ```bash
-# Lead-Zinc MVT
+# national Lead-Zinc MVT
 python sri_maper/src/map.py experiment=exp_mvt_resnet_l22_uscont data.batch_size=128 enable_attributions=True ckpt_path=sri_maper/ckpts/natl_mvt_resnet.ckpt
-# Magmatic Nickel
+# national Magmatic Nickel
 python sri_maper/src/map.py experiment=exp_maniac_resnet_l22_uscont data.batch_size=128 enable_attributions=True ckpt_path=sri_maper/ckpts/natl_maniac_resnet.ckpt
-# Tungsten-skarn
+# national Tungsten-skarn
 python sri_maper/src/map.py experiment=exp_w_resnet_l22_uscont data.batch_size=128 enable_attributions=True ckpt_path=sri_maper/ckpts/natl_w_resnet.ckpt
+# national Porphyry Copper
+python sri_maper/src/map.py experiment=exp_cu_resnet_l22_uscont data.batch_size=128 enable_attributions=True ckpt_path=sri_maper/ckpts/natl_cu_resnet.ckpt
+# regional Mafic Magmatic Nickel-Cobalt in Upper-Midwest
+python sri_maper/src/map.py experiment=exp_mamanico_resnet_umidwest data.batch_size=128 enable_attributions=True ckpt_path=sri_maper/ckpts/umidwest_mamanico_resnet.ckpt
+# regional Tungsten-skarn in Yukon-Tanana Upland
+python sri_maper/src/map.py experiment=exp_w_resnet_ytu data.batch_size=128 enable_attributions=True ckpt_path=sri_maper/ckpts/ytu_w_resnet.ckpt
 ```
-Build national-scale prospectivity map using MAE model checkpoints:
+Build prospectivity maps using MAE model checkpoints:
 ```bash
-# Lead-Zinc MVT
+# national Lead-Zinc MVT
 python sri_maper/src/map.py experiment=exp_mvt_maevit_classifier_l22_uscont model.net.backbone_ckpt=sri_maper/ckpts/natl_pretrain.ckpt data.batch_size=64 enable_attributions=True ckpt_path=sri_maper/ckpts/natl_mvt_mae.ckpt
-# Magmatic Nickel
+# national Magmatic Nickel
 python sri_maper/src/map.py experiment=exp_maniac_maevit_classifier_l22_uscont model.net.backbone_ckpt=sri_maper/ckpts/natl_pretrain_maniac.ckpt data.batch_size=64 enable_attributions=True ckpt_path=sri_maper/ckpts/natl_maniac_mae.ckpt
-# Tungsten-skarn
+# national Tungsten-skarn
 python sri_maper/src/map.py experiment=exp_w_maevit_classifier_l22_uscont model.net.backbone_ckpt=sri_maper/ckpts/natl_pretrain.ckpt data.batch_size=64 enable_attributions=True ckpt_path=sri_maper/ckpts/natl_w_mae.ckpt
+# national Porphyry Copper
+python sri_maper/src/map.py experiment=exp_cu_maevit_classifier_l22_uscont model.net.backbone_ckpt=sri_maper/ckpts/natl_pretrain_cu.ckpt data.batch_size=64 enable_attributions=True ckpt_path=sri_maper/ckpts/natl_cu_mae.ckpt
+# regional Mafic Magmatic Nickel-Cobalt in Upper-Midwest
+python sri_maper/src/map.py experiment=exp_mamanico_maevit_classifier_umidwest model.net.backbone_ckpt=sri_maper/ckpts/umidwest_mamanico_pretrain.ckpt data.batch_size=64 enable_attributions=True ckpt_path=sri_maper/ckpts/umidwest_mamanico_mae.ckpt
+# regional Tungsten-skarn in Yukon-Tanana Upland
+python sri_maper/src/map.py experiment=exp_w_maevit_classifier_ytu model.net.backbone_ckpt=sri_maper/ckpts/ytu_w_pretrain.ckpt data.batch_size=64 enable_attributions=True ckpt_path=sri_maper/ckpts/ytu_w_mae.ckpt
 ```
 ### General Usage
 
