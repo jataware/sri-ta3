@@ -24,7 +24,7 @@ data:
 
 model:
   net:
-    input_dim: 18
+    input_dim: 21
 
 trainer:
   min_epochs: 10
