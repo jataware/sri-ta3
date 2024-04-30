@@ -246,7 +246,7 @@ Pretrained model performance using defined experiment configs:
 | Tungsten-skarn national | 55.8       | 61.1    |
 | Porphyry Copper national | 57.6       | 60.3    |
 | Mafic Magmatic Nickel-Cobalt in Upper-Midwest     | 33.3       | 60.0    |
-| Tungsten-skarn in Yukon-Tanana Upland     | 55.8       | 61.1    |
+| Tungsten-skarn in Yukon-Tanana Upland     | 35.3       | 40.0    |
 
 Build prospectivity maps using ResNet model checkpoints:
 ```bash

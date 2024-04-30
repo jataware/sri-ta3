@@ -18,11 +18,11 @@ enable_attributions: false
 data:
   window_size: 5
   tif_dir: ${paths.data_dir}/H3/tungsten-skarn-ytu
-  likely_neg_range: [0.4,0.7]
+  likely_neg_range: [0.3,0.6]
 
 model:
   net:
-    num_input_channels: 18
+    num_input_channels: 21
   smoothing: 0.2
 
 trainer:

@@ -21,10 +21,16 @@ raster_stacks:
       - "Geophysics/Radiometric/Geophysics_Radiometric_Uranium.tif"
       - "Geophysics/Radiometric/Geophysics_Radiometric_Potassium.tif"
       - "Geophysics/Radiometric/Geophysics_Radiometric_Thorium.tif"
+      - "Geochemistry/Geochemistry_HUC_Mo_YTU.tif"
+      - "Geochemistry/Geochemistry_HUC_Sn_YTU.tif"
+      - "Geochemistry/Geochemistry_HUC_W_YTU.tif"
       - "Geology/Geology_Lithology_Plutonic.tif"
       - "Geology/Geology_Lithology_Carbonate.tif"
       - "Labels/ytu_tungsten_skarn.tif"
     raster_files_types:
+      - float32
+      - float32
+      - float32
       - float32
       - float32
       - float32
