@@ -55,6 +55,11 @@ def test(cfg: DictConfig) -> Tuple[dict, dict]:
     datamodule.setup("validate")
     model = model.__class__.load_from_checkpoint(cfg.ckpt_path)
 
+    if "strategy" not in cfg.get("trainer") and model.net.contains_sync_batchnorm():
+        # multi-GPU/CPU process train to single GPU/CPU process inference fix
+        log.warning("Model checkpoint was trained with multi-GPU/CPU - reverting to single GPU/CPU")
+        model.net.revert_sync_batchnorm()
+
     # temperature scaling
     if "temperature" not in cfg.model:
         model_calibrator = utils.BinaryTemperatureScaling(model)

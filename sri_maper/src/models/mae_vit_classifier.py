@@ -4,6 +4,7 @@ import torch
 import torch.nn.functional as F
 
 from sri_maper.src.models.cma_module_pretrain_mae import SSCMALitModule
+from sri_maper.src import utils
 
 
 class DummyPatchDropLayer(torch.nn.Module):
@@ -29,10 +30,6 @@ class CLSClassifier(torch.nn.Module):
         # optionally freezes backbone
         self.backbone.requires_grad_(not freeze_backbone)
         # classifier
-        # self.ff = torch.nn.Sequential(
-        #     torch.nn.Dropout(p=dropout_rate),
-        #     torch.nn.Linear(backbone_net.enc_dim, 1, bias=False)
-        # )
         self.ff = torch.nn.Sequential(
             torch.nn.Dropout(p=dropout_rate),
             torch.nn.Linear(backbone_net.enc_dim, backbone_net.enc_dim//2),
@@ -59,6 +56,14 @@ class CLSClassifier(torch.nn.Module):
 
     def activate_dropout(self):
         self.ff[0].train()
+
+    def revert_sync_batchnorm(self):
+        # fixes SyncBatchNorm layers if they exist due to multi-GPU training
+        self.ff = utils.revert_sync_batchnorm(self.ff, torch.nn.modules.batchnorm.BatchNorm1d)
+
+    def contains_sync_batchnorm(self):
+        # checks for SynBatchNorms
+        return utils.contains_sync_batchnorm(self.ff)
 
 ###########################################################
 #        !! TODO: ALL BELOW ARE DEPRECATED !!

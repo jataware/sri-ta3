@@ -10,6 +10,8 @@ from sri_maper.src.utils.utils import (
     save_file,
     task_wrapper,
     build_hydra_config_notebook,
+    revert_sync_batchnorm,
+    contains_sync_batchnorm,
 )
 from sri_maper.src.utils.tif_utils import write_tif
 from sri_maper.src.utils.posthoc_utils import BinaryTemperatureScaling, ThresholdMoving

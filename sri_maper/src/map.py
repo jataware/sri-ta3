@@ -54,6 +54,11 @@ def build_map(cfg: DictConfig) -> Tuple[dict, dict]:
 
     # preparation
     model = model.__class__.load_from_checkpoint(cfg.ckpt_path)
+    
+    if "strategy" not in cfg.get("trainer") and model.net.contains_sync_batchnorm():
+        # multi-GPU/CPU process train to single GPU/CPU process inference fix
+        log.warning("Model checkpoint was trained with multi-GPU/CPU - reverting to single GPU/CPU")
+        model.net.revert_sync_batchnorm()
 
     if "temperature" not in cfg.model:
         datamodule.setup("validate")
