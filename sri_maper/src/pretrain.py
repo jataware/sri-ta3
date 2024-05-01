@@ -59,23 +59,18 @@ def pretrain(cfg: DictConfig) -> Tuple[dict, dict]:
         log.info("Logging hyperparameters!")
         utils.log_hyperparameters(object_dict)
 
-    if cfg.get("tune"):
-        log.info("Exiting after finding best initial learning rate!")
-        trainer: Trainer = hydra.utils.instantiate(
-            cfg.trainer, 
-            callbacks=callbacks, 
-            logger=logger,
-            auto_lr_find=True,
-        )
-        trainer.tune(model=model, datamodule=datamodule)
+    if "strategy" not in cfg.get("trainer") and model.net.contains_sync_batchnorm():
+        # multi-GPU/CPU process train to single GPU/CPU process inference fix
+        log.warning("Model checkpoint was trained with multi-GPU/CPU - reverting to single GPU/CPU")
+        model.net.revert_sync_batchnorm()
 
-    if cfg.get("train") and not cfg.get("tune"):
+    if cfg.get("train"):
         log.info("Starting training!")
         trainer.fit(model=model, datamodule=datamodule, ckpt_path=cfg.get("ckpt_path"))
 
     train_metrics = trainer.callback_metrics
 
-    if cfg.get("test") and not cfg.get("tune"):
+    if cfg.get("test"):
         log.info("Testing best model from training!")
         ckpt_path = trainer.checkpoint_callback.best_model_path
         if ckpt_path == "":

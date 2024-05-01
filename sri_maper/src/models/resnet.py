@@ -2,6 +2,8 @@ import torch
 import torch.nn as nn
 import timm
 
+from sri_maper.src import utils
+
 
 class ResNet(nn.Module):
     def __init__(
@@ -33,6 +35,15 @@ class ResNet(nn.Module):
     
     def activate_dropout(self):
         self.classifier[2].train()
+    
+    def revert_sync_batchnorm(self):
+        # fixes SyncBatchNorm layers if they exist due to multi-GPU training
+        self.backbone = utils.revert_sync_batchnorm(self.backbone, torch.nn.modules.batchnorm.BatchNorm2d)
+    
+    def contains_sync_batchnorm(self):
+        # checks for SynBatchNorms
+        return utils.contains_sync_batchnorm(self.backbone)
+
 
 if __name__ == "__main__":
     from torchinfo import summary
