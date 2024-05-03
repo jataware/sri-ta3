@@ -17,17 +17,21 @@ seed: 1234
 data:
   window_size: 5
   batch_size: 1024
-  tif_dir: ${paths.data_dir}/H3/Porphyry-Copper-nogeochemistry-outliers-removed
+  tif_dir: ${paths.data_dir}/H3/Porphyry-Copper
   downsample: false
   oversample: false
   frac_train_split: 0.9
 
 model:
+  optimizer:
+    _target_: torch.optim.AdamW
+    lr: 1e-3
+    weight_decay: 1e-2
   net:
-    input_dim: 22
+    input_dim: 23
 
 trainer:
-  min_epochs: 10
+  min_epochs: 30
   max_epochs: 100
   limit_train_batches: 1.0
   limit_val_batches: 1.0

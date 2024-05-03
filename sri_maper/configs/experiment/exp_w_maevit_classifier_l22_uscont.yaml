@@ -18,11 +18,11 @@ enable_attributions: false
 data:
   window_size: 5
   tif_dir: ${paths.data_dir}/H3/Tungsten-Skarn
-  likely_neg_range: [0.25,0.75]
+  likely_neg_range: [0.25, 0.75]
 
 model:
   net:
-    backbone_ckpt: "logs/cmta3-pretrain-maevit/runs/2024-03-29_15-37-39/checkpoints/ssim_0.915-v1.ckpt"
+    backbone_ckpt: null
     backbone_net:
       _target_: sri_maper.src.models.mae_vit.MAE_ViT
       image_size: ${data.window_size}
@@ -36,7 +36,7 @@ model:
       decoder_layer: 2
       decoder_head: 4
       mask_ratio: 0.0
-    dropout_rate: 0.5
+    dropout_rate: [0.5, 0.5, 0.5]
   smoothing: 0.2
 
 trainer:
@@ -49,7 +49,7 @@ trainer:
 
 logger:
   wandb:
-    name: "ViT|pretrained|frozen|do_ll_bn_prelu_do_ll_bn_prelu_do_ll|lr=${model.optimizer.lr}"
+    name: "ViT|pretrained|frozen"
 
 callbacks:
   model_checkpoint:
