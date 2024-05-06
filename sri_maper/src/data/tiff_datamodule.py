@@ -69,6 +69,7 @@ class TIFFDataModule(LightningDataModule):
         log_path: str = "/workspace/logs/",
         likely_neg_range: List[float] = [0.25,0.75],
         frac_train_split: float = 0.5,
+        specified_split: Optional[List[List[float]]] = None,
         seed: int = 0,
     ) -> None:
         """Initialize a `TIFFDataModule`.
@@ -119,11 +120,16 @@ class TIFFDataModule(LightningDataModule):
                     init_feat_extractor = partial(simple_feat_extractor, window_size=self.data_train.window_size)
                     self.data_train = dataset_utils.pu_downsample(self.data_train, init_feat_extractor, multiplier=self.hparams.multiplier, likely_neg_range=self.hparams.likely_neg_range, seed=self.hparams.seed)
                 log.debug(f"Splitting base dataset into train / val / test.")
-                # random split
-                if self.hparams.frac_train_split < 1.0:
-                    self.data_train, self.data_val, self.data_test = dataset_utils.random_proportionate_split(self.data_train, train_split=self.hparams.frac_train_split, seed=self.hparams.seed)
+                if self.hparams.specified_split:
+                    log.debug(f"Splitting using specified coordinates.")
+                    self.data_train, self.data_val, self.data_test = dataset_utils.specified_split(self.data_train, pos_train_coordinates=self.hparams.specified_split, train_split=self.hparams.frac_train_split, seed=self.hparams.seed)
                 else:
-                    _, self.data_val, self.data_test = dataset_utils.random_proportionate_split(self.data_train, train_split=0.5, seed=self.hparams.seed)
+                    # random split
+                    log.debug(f"Randomly splitting.")
+                    if self.hparams.frac_train_split < 1.0:
+                        self.data_train, self.data_val, self.data_test = dataset_utils.random_proportionate_split(self.data_train, train_split=self.hparams.frac_train_split, seed=self.hparams.seed)
+                    else:
+                        _, self.data_val, self.data_test = dataset_utils.random_proportionate_split(self.data_train, train_split=0.5, seed=self.hparams.seed)
                 # oversample to balance
                 self.data_train = dataset_utils.balance_data(self.data_train, multiplier=self.hparams.multiplier, oversample=self.hparams.oversample, seed=self.hparams.seed)
                 dataset_utils.store_samples(self.data_train, self.hparams.log_path, "train")
