@@ -55,7 +55,9 @@ class CLSClassifier(torch.nn.Module):
         return features
 
     def activate_dropout(self):
-        self.ff[0].train()
+        for m in self.ff:
+            if m.__class__.__name__.startswith('Dropout'):
+                m.train()
 
     def revert_sync_batchnorm(self):
         # fixes SyncBatchNorm layers if they exist due to multi-GPU training

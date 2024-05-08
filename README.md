@@ -193,6 +193,8 @@ python sri_maper/src/train.py experiment=exp_cu_resnet_l22_uscont
 python sri_maper/src/train.py experiment=exp_mamanico_resnet_umidwest
 # Regional Tungsten-skarn in Yukon-Tanana Upland
 python sri_maper/src/train.py experiment=exp_w_resnet_ytu
+# Regional MVT Lead-Zinc in "SMidCont"
+python sri_maper/src/train.py experiment=exp_mvt_resnet_smidcont
 ```
 Pretrain, Train, and Test national-scale MVT Lead-Zinc and Tungsten-skarn CMAs using MAE:
 ```bash
@@ -233,6 +235,13 @@ python sri_maper/src/pretrain.py experiment=exp_w_maevit_pretrain_ytu
 # trains & tests Tungsten-skarn in Yukon-Tanana Upland
 python sri_maper/src/train.py experiment=exp_w_maevit_classifier_ytu model.net.backbone_ckpt=logs/PATH_TO_PRETRAINED_CHECKPOINT_ABOVE/checkpoint.ckpt
 ```
+Pretrain, Train, and Test regional-scale MVT Lead-Zinc in "SMidCont" CMA using MAE:
+```bash
+# pretrains the MAE checkpoint (18 evidence layers)
+python sri_maper/src/pretrain.py experiment=exp_mvt_maevit_pretrain_smidcont
+# trains & tests Tungsten-skarn in Yukon-Tanana Upland
+python sri_maper/src/train.py experiment=exp_mvt_maevit_classifier_smidcont model.net.backbone_ckpt=logs/PATH_TO_PRETRAINED_CHECKPOINT_ABOVE/checkpoint.ckpt
+```
 
 ### Build Maps with Trained Models
 
@@ -262,6 +271,8 @@ python sri_maper/src/map.py experiment=exp_cu_resnet_l22_uscont data.batch_size=
 python sri_maper/src/map.py experiment=exp_mamanico_resnet_umidwest data.batch_size=128 enable_attributions=True ckpt_path=sri_maper/ckpts/umidwest_mamanico_resnet.ckpt
 # regional Tungsten-skarn in Yukon-Tanana Upland
 python sri_maper/src/map.py experiment=exp_w_resnet_ytu data.batch_size=128 enable_attributions=True ckpt_path=sri_maper/ckpts/ytu_w_resnet.ckpt
+# regional MVT Lead-Zinc in "SMidCont"
+python sri_maper/src/map.py experiment=exp_mvt_resnet_smidcont data.batch_size=128 enable_attributions=True ckpt_path=sri_maper/ckpts/exp_mvt_resnet_smidcont.ckpt
 ```
 Build prospectivity maps using MAE model checkpoints:
 ```bash
@@ -277,6 +288,8 @@ python sri_maper/src/map.py experiment=exp_cu_maevit_classifier_l22_uscont model
 python sri_maper/src/map.py experiment=exp_mamanico_maevit_classifier_umidwest model.net.backbone_ckpt=sri_maper/ckpts/umidwest_mamanico_pretrain.ckpt data.batch_size=64 enable_attributions=True ckpt_path=sri_maper/ckpts/umidwest_mamanico_mae.ckpt
 # regional Tungsten-skarn in Yukon-Tanana Upland
 python sri_maper/src/map.py experiment=exp_w_maevit_classifier_ytu model.net.backbone_ckpt=sri_maper/ckpts/ytu_w_pretrain.ckpt data.batch_size=64 enable_attributions=True ckpt_path=sri_maper/ckpts/ytu_w_mae.ckpt
+# regional MVT Lead-Zinc in "SMidCont"
+python sri_maper/src/map.py experiment=exp_mvt_maevit_classifier_smidcont model.net.backbone_ckpt=sri_maper/ckpts/smidcont_mvt_pretrain.ckpt data.batch_size=64 enable_attributions=True ckpt_path=sri_maper/ckpts/smidcont_mvt_mae.ckpt
 ```
 ### General Usage
 
