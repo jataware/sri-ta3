@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, List
 
 import torch
 import torch.nn.functional as F
@@ -20,7 +20,7 @@ class CLSClassifier(torch.nn.Module):
         backbone_ckpt: str = None,
         backbone_net: torch.nn.Module = None,
         freeze_backbone: bool = True,
-        dropout_rate: Optional[float] = 0.5,
+        dropout_rate: Optional[List[float]] = [0.5, 0.5, 0.5],
     ) -> None:
 
         super().__init__()
@@ -31,19 +31,18 @@ class CLSClassifier(torch.nn.Module):
         self.backbone.requires_grad_(not freeze_backbone)
         # classifier
         self.ff = torch.nn.Sequential(
-            torch.nn.Dropout(p=dropout_rate),
+            torch.nn.Dropout(p=dropout_rate[0]),
             torch.nn.Linear(backbone_net.enc_dim, backbone_net.enc_dim//2),
             torch.nn.BatchNorm1d(backbone_net.enc_dim//2),
 
             torch.nn.PReLU(),
-            torch.nn.Dropout(p=dropout_rate),
+            torch.nn.Dropout(p=dropout_rate[1]),
             torch.nn.Linear(backbone_net.enc_dim//2, backbone_net.enc_dim//4),
             torch.nn.BatchNorm1d(backbone_net.enc_dim//4),
 
             torch.nn.PReLU(),
-            torch.nn.Dropout(p=dropout_rate),
-            torch.nn.Linear(backbone_net.enc_dim//4, 1, bias=False),
-
+            torch.nn.Dropout(p=dropout_rate[2]),
+            torch.nn.Linear(backbone_net.enc_dim//4, 1, bias=False)
         )
 
     def forward(self, img):
@@ -55,7 +54,9 @@ class CLSClassifier(torch.nn.Module):
         return features
 
     def activate_dropout(self):
-        self.ff[0].train()
+        for m in self.ff:
+            if m.__class__.__name__.startswith('Dropout'):
+                m.train()
 
     def revert_sync_batchnorm(self):
         # fixes SyncBatchNorm layers if they exist due to multi-GPU training

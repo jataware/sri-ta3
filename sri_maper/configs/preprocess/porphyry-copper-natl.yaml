@@ -23,14 +23,14 @@ raster_stacks:
       - "Geophysics/Radiometric/Geophysics_Radiometric_Potassium_clipped.tif"
       - "Geophysics/Radiometric/Geophysics_Radiometric_Thorium_clipped.tif"
       - "Geophysics/Radiometric/Geophysics_Radiometric_Uranium_clipped.tif"
-      # - "Geochemistry/"
-      # - "Geochemistry/"
+      - "Geochemistry/Geochemistry_HUC_Cu_clipped.tif"
       - "Geology/Geology_Lithology_Intrusive_Plutonic_Rock_Proximity_clipped.tif"
       - "Geology/Geology_Lithology_Extrusive_Volcanic_Rock_Proximity_clipped.tif"
       - "Geology/Geology_Age_Minimum_clipped.tif"
       - "Geology/Geology_Age_Maximum_clipped.tif"
       - "Labels/porphyry_copper_sites_cont_US_clipped.tif"
     raster_files_types:
+      - float32
       - float32
       - float32
       - float32

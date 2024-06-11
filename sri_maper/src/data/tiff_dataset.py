@@ -1,4 +1,4 @@
-from typing import Union, List, Callable
+from typing import Union, List, Callable, Optional
 from math import ceil
 from glob import glob
 from pathlib import Path
@@ -340,6 +340,121 @@ def random_proportionate_split(
 
     return ds_train, ds_valid, ds_test
 
+def select_deposits(df: pd.DataFrame, coordinates: List[List[float]]):
+    # select only the deposit from pos_train_coordinates
+    selected_rows = []
+    for (i,j) in coordinates:
+        # Select the row where 'x' and 'y' are equal to i and j
+        selected_row = df[(df['x'] == i) & (df['y'] == j)]
+        selected_rows.append(selected_row)
+    df_selected = pd.concat(selected_rows)
+
+    # select deposits not from pos_train_coordinates
+    ds_df_p_notselected = pd.merge(df, df_selected, how='outer', indicator=True)
+    ds_df_p_notselected = ds_df_p_notselected[ds_df_p_notselected['_merge'] == 'left_only']
+    ds_df_p_notselected = ds_df_p_notselected.drop(columns=['_merge'])
+
+    return df_selected, ds_df_p_notselected
+
+def specified_split(
+    ds: Dataset,
+    pos_train_coordinates: List[List[float]],
+    train_split: float = 0.9,
+    # pos_test_coordinates: Optional[List[List[float]]] = None,
+    seed: int = 0,
+):
+    ds_df = pd.DataFrame(
+        data=ds.valid_patches,
+        index=np.arange(ds.valid_patches.shape[0]),
+        columns=["x","y","label","lon", "lat","source"]
+    )
+
+    # make positive datasets
+    ds_df_p = ds_df[ds_df["label"] == 1]
+
+    assert len(pos_train_coordinates) <= len(ds_df_p), \
+        "number of provided coordinates should at most be equal to the number of positive samples in the dataset."
+
+    # seperate into selected and not selected deposits
+    ds_df_p_selected, ds_df_p_notselected = select_deposits(ds_df_p, pos_train_coordinates)
+
+    ds_df_p_train, ds_df_p_valid = train_test_split(ds_df_p_selected,
+                                                        train_size=train_split,
+                                                        random_state=seed)
+
+    ds_p_train = TiffDataset(
+        tif_files=ds.tif_files,
+        tif_data=ds.tif_data,
+        tif_tags=ds.tif_tags,
+        tif_meta=ds.tif_meta,
+        window_size=ds.window_size,
+        stage=ds.stage,
+        valid_patches=ds_df_p_train.values,
+    )
+    ds_p_valid = TiffDataset(
+        tif_files=ds.tif_files,
+        tif_data=ds.tif_data,
+        tif_tags=ds.tif_tags,
+        tif_meta=ds.tif_meta,
+        window_size=ds.window_size,
+        stage=ds.stage,
+        valid_patches=ds_df_p_valid.values,
+    )
+    ds_p_test = TiffDataset(
+        tif_files=ds.tif_files,
+        tif_data=ds.tif_data,
+        tif_tags=ds.tif_tags,
+        tif_meta=ds.tif_meta,
+        window_size=ds.window_size,
+        stage=ds.stage,
+        valid_patches=ds_df_p_notselected.values,
+    )
+
+    # make negative datasets
+    ds_df_n = ds_df[ds_df["label"] == 0]
+    ds_df_n_train, ds_df_n_temp = train_test_split(ds_df_n,
+                                                    train_size=len(ds_df_p_train)/len(ds_df_p),
+                                                    random_state=seed)
+    ds_df_n_valid, ds_df_n_test = train_test_split(ds_df_n_temp,
+                                                    train_size=len(ds_df_p_valid)/(len(ds_df_p_valid)+len(ds_df_p_notselected)),
+                                                    random_state=seed)
+
+    ds_n_train = TiffDataset(
+        tif_files=ds.tif_files,
+        tif_data=ds.tif_data,
+        tif_tags=ds.tif_tags,
+        tif_meta=ds.tif_meta,
+        window_size=ds.window_size,
+        stage=ds.stage,
+        valid_patches=ds_df_n_train.values,
+    )
+    ds_n_valid = TiffDataset(
+        tif_files=ds.tif_files,
+        tif_data=ds.tif_data,
+        tif_tags=ds.tif_tags,
+        tif_meta=ds.tif_meta,
+        window_size=ds.window_size,
+        stage=ds.stage,
+        valid_patches=ds_df_n_valid.values,
+    )
+    ds_n_test = TiffDataset(
+        tif_files=ds.tif_files,
+        tif_data=ds.tif_data,
+        tif_tags=ds.tif_tags,
+        tif_meta=ds.tif_meta,
+        window_size=ds.window_size,
+        stage=ds.stage,
+        valid_patches=ds_df_n_test.values,
+    )
+
+    ds_train = combine(ds_p_train, ds_n_train)
+    ds_valid = combine(ds_p_valid, ds_n_valid)
+    ds_test = combine(ds_p_test, ds_n_test)
+
+    return ds_train, ds_valid, ds_test
+
+
+
 
 def pu_downsample(
     ds: Dataset,
@@ -347,6 +462,7 @@ def pu_downsample(
     multiplier: int = 20,
     likely_neg_range: List[float] = [0.25,0.75],
     seed: int = 0,
+    log_path: str = "",
 ):
     log.info("Using Likely Negative Downsampling!")
     ds_df = pd.DataFrame(
@@ -395,6 +511,7 @@ def pu_downsample(
     for p_idx in range(len(p_feats)):
         pu_dist[inds[p_idx]] += dists[p_idx]
     u_dist = pu_dist[len(p_feats):]
+    store_samples(ds_u, log_path, "all_unlabeled", {"name":"distances", "values":u_dist})
     # rank unlabeled by negativity likelihood, taking % most negative
     u_dist_sort_idx = np.argsort(u_dist)
 
@@ -468,8 +585,8 @@ def filter_by_bounds(ds):
     return ds
 
 
-def store_samples(ds, root_path, name):
-    log_str = f"Spatial cross val ouput: train pos - {ds.valid_patches[:,2].sum()}, train neg - {len(ds)-ds.valid_patches[:,2].sum()}."
+def store_samples(ds, root_path, name, optional_col=None):
+    log_str = f"Spatial cross val ouput: {name} pos - {ds.valid_patches[:,2].sum()}, {name} neg - {len(ds)-ds.valid_patches[:,2].sum()}."
     log.info(log_str)
     file_path = f"{root_path}/{name}.csv"
     ds_df = pd.DataFrame(
@@ -477,5 +594,7 @@ def store_samples(ds, root_path, name):
         index=np.arange(ds.valid_patches.shape[0]),
         columns=["x","y","label","lon", "lat","source"]
     )
+    if optional_col is not None:
+        ds_df[optional_col["name"]] = optional_col["values"]
     ds_df.to_csv(file_path, index=False)
 
