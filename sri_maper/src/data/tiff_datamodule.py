@@ -118,7 +118,14 @@ class TIFFDataModule(LightningDataModule):
                             X = X.detach().cpu().numpy()
                         return X[:, window_size//2, window_size//2]
                     init_feat_extractor = partial(simple_feat_extractor, window_size=self.data_train.window_size)
-                    self.data_train = dataset_utils.pu_downsample(self.data_train, init_feat_extractor, multiplier=self.hparams.multiplier, likely_neg_range=self.hparams.likely_neg_range, seed=self.hparams.seed)
+                    self.data_train = dataset_utils.pu_downsample(
+                        self.data_train, 
+                        init_feat_extractor, 
+                        multiplier=self.hparams.multiplier, 
+                        likely_neg_range=self.hparams.likely_neg_range, 
+                        seed=self.hparams.seed,
+                        log_path=self.hparams.log_path
+                    )
                 log.debug(f"Splitting base dataset into train / val / test.")
                 if self.hparams.specified_split:
                     log.debug(f"Splitting using specified coordinates.")

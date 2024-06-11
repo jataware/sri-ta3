@@ -462,6 +462,7 @@ def pu_downsample(
     multiplier: int = 20,
     likely_neg_range: List[float] = [0.25,0.75],
     seed: int = 0,
+    log_path: str = "",
 ):
     log.info("Using Likely Negative Downsampling!")
     ds_df = pd.DataFrame(
@@ -510,6 +511,7 @@ def pu_downsample(
     for p_idx in range(len(p_feats)):
         pu_dist[inds[p_idx]] += dists[p_idx]
     u_dist = pu_dist[len(p_feats):]
+    store_samples(ds_u, log_path, "all_unlabeled", {"name":"distances", "values":u_dist})
     # rank unlabeled by negativity likelihood, taking % most negative
     u_dist_sort_idx = np.argsort(u_dist)
 
@@ -583,8 +585,8 @@ def filter_by_bounds(ds):
     return ds
 
 
-def store_samples(ds, root_path, name):
-    log_str = f"Spatial cross val ouput: train pos - {ds.valid_patches[:,2].sum()}, train neg - {len(ds)-ds.valid_patches[:,2].sum()}."
+def store_samples(ds, root_path, name, optional_col=None):
+    log_str = f"Spatial cross val ouput: {name} pos - {ds.valid_patches[:,2].sum()}, {name} neg - {len(ds)-ds.valid_patches[:,2].sum()}."
     log.info(log_str)
     file_path = f"{root_path}/{name}.csv"
     ds_df = pd.DataFrame(
@@ -592,5 +594,7 @@ def store_samples(ds, root_path, name):
         index=np.arange(ds.valid_patches.shape[0]),
         columns=["x","y","label","lon", "lat","source"]
     )
+    if optional_col is not None:
+        ds_df[optional_col["name"]] = optional_col["values"]
     ds_df.to_csv(file_path, index=False)
 
