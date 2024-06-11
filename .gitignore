@@ -146,3 +146,6 @@ dmypy.json
 
 # Aim logging
 .aim
+
+# pytorch models
+*.ckpt
