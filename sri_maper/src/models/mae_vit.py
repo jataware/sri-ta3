@@ -3,6 +3,8 @@ from timm.models.layers import trunc_normal_
 from timm.models.vision_transformer import Block
 from einops.layers.torch import Rearrange
 
+from sri_maper.src import utils
+
 
 class PatchDropLayer(torch.nn.Module):
     def __init__(self, ratio) -> None:
@@ -169,3 +171,11 @@ class MAE_ViT(torch.nn.Module):
         predicted_img = self.decoder(features,  restore)
         # returns combined patches into images
         return self.patch2img(predicted_img), self.patch2img(mask.unsqueeze(-1).repeat(1, 1, predicted_img.shape[-1]))
+    
+    def contains_sync_batchnorm(self):
+        # checks for SynBatchNorms
+        return utils.contains_sync_batchnorm(self.encoder) or utils.contains_sync_batchnorm(self.decoder) # false
+
+    def revert_sync_batchnorm(self):
+        # fixes SyncBatchNorm layers if they exist due to multi-GPU training
+        raise NotImplementedError

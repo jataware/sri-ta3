@@ -194,7 +194,7 @@ class TIFFDataModule(LightningDataModule):
         """
         return DataLoader(
             dataset=self.data_predict,
-            batch_size=self.hparams.batch_size,
+            batch_size=128,
             num_workers=self.hparams.num_workers,
             pin_memory=self.hparams.pin_memory,
             shuffle=False,

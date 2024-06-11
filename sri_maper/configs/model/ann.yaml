@@ -1,0 +1,31 @@
+_target_: sri_maper.src.models.cma_module.CMALitModule
+
+optimizer:
+  _target_: torch.optim.AdamW
+  _partial_: true
+  lr: 1e-3
+  weight_decay: 1e-2
+
+scheduler:
+  _target_: torch.optim.lr_scheduler.ReduceLROnPlateau
+  _partial_: true
+  mode: min
+  factor: 0.1
+  patience: 10
+
+net:
+  _target_: sri_maper.src.models.ann.ANN
+  num_input_channels: 1
+  num_output_classes: 1
+  image_size: ${data.window_size}
+  dropout_rate: [0.0, 0.25, 0.25]
+
+# compile model for faster training with pytorch 2.0
+compile: false
+
+gain: 1.0
+
+extract_attributions: ${enable_attributions}
+mc_samples: 100
+
+smoothing: 0.1
