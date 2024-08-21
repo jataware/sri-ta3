@@ -455,6 +455,37 @@ def specified_split(
 
 
 
+def generic_downsample(
+    ds: Dataset,
+    neg_count = 10_000,
+):
+    # simply downsample the negatives
+    
+    ds_df = pd.DataFrame(
+        data=ds.valid_patches,
+        index=np.arange(ds.valid_patches.shape[0]),
+        columns=["x","y","label","lon", "lat","source"]
+    )
+    
+    df_p = ds_df[ds_df["label"] == 1]
+    df_n = ds_df[ds_df["label"] == 0]
+    
+    df_n = df_n.sample(n=neg_count, replace=False)
+    
+    ds_df = pd.concat([df_p, df_n], axis=0).reset_index(drop=True)
+    
+    ds = TiffDataset(
+        tif_files=ds.tif_files,
+        tif_data=ds.tif_data,
+        tif_tags=ds.tif_tags,
+        tif_meta=ds.tif_meta,
+        window_size=ds.window_size,
+        stage=ds.stage,
+        valid_patches=ds_df.values,
+    )
+    
+    return ds
+
 
 def pu_downsample(
     ds: Dataset,

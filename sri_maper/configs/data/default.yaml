@@ -5,6 +5,7 @@ window_size: 33
 multiplier: 20
 downsample: true
 oversample: true
+alt_preprocessing: false
 likely_neg_range: [0.25,0.75]
 frac_train_split: 0.5
 # training params

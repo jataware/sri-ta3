@@ -66,6 +66,7 @@ class TIFFDataModule(LightningDataModule):
         multiplier: int = 20,
         downsample: bool = True,
         oversample: bool = True,
+        alt_preprocessing: bool = False,
         log_path: str = "/workspace/logs/",
         likely_neg_range: List[float] = [0.25,0.75],
         frac_train_split: float = 0.5,
@@ -102,7 +103,34 @@ class TIFFDataModule(LightningDataModule):
 
         :param stage: The stage to setup. Either `"fit"`, `"validate"`, `"test"`, or `"predict"`. Defaults to ``None``.
         """
-        if stage in ["fit","validate","test"]:
+        
+        if self.hparams.alt_preprocessing:
+            # loads and splits datasets for train / val / test
+            if not self.data_train or not self.data_val or not self.data_test:
+                log.debug(f"Instantiating base dataset.")
+                self.data_train = dataset_utils.TiffDataset(
+                    tif_dir=self.hparams.tif_dir,
+                    window_size=self.hparams.window_size,
+                    stage=stage,
+                )
+                self.data_train = dataset_utils.generic_downsample(
+                    self.data_train, 
+                    neg_count = 20_000
+                )
+                
+                # make random train / test / val split
+                self.data_train, self.data_val, self.data_test = dataset_utils.random_proportionate_split(self.data_train, train_split=self.hparams.frac_train_split, seed=self.hparams.seed)
+                
+                dataset_utils.store_samples(self.data_train, self.hparams.log_path, "train")
+                dataset_utils.store_samples(self.data_val, self.hparams.log_path, "valid")
+                dataset_utils.store_samples(self.data_test, self.hparams.log_path, "test")
+                print("lens", len(self.data_train), len(self.data_val), len(self.data_test))
+
+                print("lens", len(self.data_train), len(self.data_val), len(self.data_test))
+                print('n_pos', sum([1 for i in self.data_train if i[1] == 1]), sum([1 for i in self.data_val if i[1] == 1]), sum([1 for i in self.data_test if i[1] == 1]))
+                                
+            
+        elif stage in ["fit","validate","test"]:
             # loads and splits datasets for train / val / test
             if not self.data_train or not self.data_val or not self.data_test:
                 log.debug(f"Instantiating base dataset.")
@@ -118,6 +146,7 @@ class TIFFDataModule(LightningDataModule):
                             X = X.detach().cpu().numpy()
                         return X[:, window_size//2, window_size//2]
                     init_feat_extractor = partial(simple_feat_extractor, window_size=self.data_train.window_size)
+                    print("GOING TO DOWNSAMPLE")
                     self.data_train = dataset_utils.pu_downsample(
                         self.data_train, 
                         init_feat_extractor, 
@@ -126,7 +155,8 @@ class TIFFDataModule(LightningDataModule):
                         seed=self.hparams.seed,
                         log_path=self.hparams.log_path
                     )
-                log.debug(f"Splitting base dataset into train / val / test.")
+                log.debug(f"Splitting base dataset into train / val / test.")                
+                
                 if self.hparams.specified_split:
                     log.debug(f"Splitting using specified coordinates.")
                     self.data_train, self.data_val, self.data_test = dataset_utils.specified_split(self.data_train, pos_train_coordinates=self.hparams.specified_split, train_split=self.hparams.frac_train_split, seed=self.hparams.seed)
@@ -136,12 +166,15 @@ class TIFFDataModule(LightningDataModule):
                     if self.hparams.frac_train_split < 1.0:
                         self.data_train, self.data_val, self.data_test = dataset_utils.random_proportionate_split(self.data_train, train_split=self.hparams.frac_train_split, seed=self.hparams.seed)
                     else:
+                        print("DOUBLE RANDOM")
                         _, self.data_val, self.data_test = dataset_utils.random_proportionate_split(self.data_train, train_split=0.5, seed=self.hparams.seed)
                 # oversample to balance
                 self.data_train = dataset_utils.balance_data(self.data_train, multiplier=self.hparams.multiplier, oversample=self.hparams.oversample, seed=self.hparams.seed)
                 dataset_utils.store_samples(self.data_train, self.hparams.log_path, "train")
                 dataset_utils.store_samples(self.data_val, self.hparams.log_path, "valid")
                 dataset_utils.store_samples(self.data_test, self.hparams.log_path, "test")
+                print("lens", len(self.data_train), len(self.data_val), len(self.data_test))
+
         elif stage == "predict":
             # loads datasets to produce a prediction map
             if not self.data_predict:
