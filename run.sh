@@ -19,6 +19,7 @@ python sri_maper/src/pretrain.py experiment=natl_maniac/exp_maniac_maevit_pretra
 
 # Magmatic Nickel CMA model
 python sri_maper/src/train.py experiment=exp_maniac_maevit_classifier_l22_uscont model.net.backbone_ckpt=logs/maevit_pretrain_l22_uscont_maniac/runs/checkpoints/last.ckpt
+python sri_maper/src/train.py experiment=exp_maniac_maevit_classifier_l22_uscont model.net.backbone_ckpt=logs/maevit_pretrain_l22_uscont_maniac/runs/checkpoints/last.ckpt data.alt_preprocess=true
 
 
 # --
@@ -27,3 +28,4 @@ python sri_maper/src/pretrain.py experiment=natl_cu/exp_cu_maevit_pretrain_l22_u
 
 # natl polyphory copper cma
 python sri_maper/src/train.py experiment=exp_cu_maevit_classifier_l22_uscont model.net.backbone_ckpt=logs/maevit_pretrain_l22_uscont_cu/runs/checkpoints/last.ckpt
+python sri_maper/src/train.py experiment=exp_cu_maevit_classifier_l22_uscont model.net.backbone_ckpt=logs/maevit_pretrain_l22_uscont_cu/runs/checkpoints/last.ckpt data.alt_preprocess=true
