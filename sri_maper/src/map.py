@@ -11,6 +11,8 @@ from sri_maper.src import utils
 
 log = utils.get_pylogger(__name__)
 
+import torch
+torch.multiprocessing.set_sharing_strategy('file_system')
 
 @utils.task_wrapper
 def build_map(cfg: DictConfig) -> Tuple[dict, dict]:

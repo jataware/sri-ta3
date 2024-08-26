@@ -5,6 +5,8 @@ from copy import copy
 
 def write_tif(results, path, attributions_flag, datamodule):
     
+    
+    
     # defines the tif meta data
     tif_meta = copy(datamodule.data_predict.tif_meta)
     tif_meta.update({

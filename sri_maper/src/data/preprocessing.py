@@ -49,18 +49,17 @@ def generate_raster_stack(
     """
 
     # loads the individual rasters
-    rasters = load_rasters(raster_files, raster_files_path)
+    rasters      = load_rasters(raster_files, raster_files_path)
     rasters_data = [raster.read(1, masked=True) for raster in rasters]
     for raster_data in rasters_data: np.ma.set_fill_value(raster_data, np.nan)
-    rasters_msk = [raster.read_masks(1) for raster in rasters]
+    rasters_msk   = [raster.read_masks(1) for raster in rasters]
     raster_shapes = [raster_data.shape for raster_data in rasters_data]
 
     # creates the raster dataframe
     raster_df = pd.DataFrame()
     for i, raster_data in enumerate(rasters_data):
         raster_df[f"{raster_files[i]}"] = raster_data.filled().flatten()
-    raster_type_dict = \
-        {raster_file: raster_type for raster_file, raster_type in zip(raster_files, raster_files_types)}
+    raster_type_dict = {raster_file: raster_type for raster_file, raster_type in zip(raster_files, raster_files_types)}
 
     # removes outliers and normalizes
     if outlier_removal:
