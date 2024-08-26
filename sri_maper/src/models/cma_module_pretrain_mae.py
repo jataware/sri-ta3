@@ -239,7 +239,7 @@ class SSCMALitModule(LightningModule):
                 batch[0].tile((self.hparams.mc_samples,1,1,1))
             ).reshape(self.hparams.mc_samples,-1)
         ).detach()
-
+        
         # computes mean and std of MC samples
         means = preds.mean(dim=0).squeeze()
         stds = preds.std(dim=0).squeeze()

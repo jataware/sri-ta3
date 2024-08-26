@@ -235,51 +235,73 @@ class CMALitModule(LightningModule):
         """Lightning hook that is called when a test epoch ends."""
         pass
 
+    # def predict_step(self, batch: Tuple[torch.Tensor, torch.Tensor], batch_idx: int) -> None:
+    #     """Perform a single predict step on a batch of data from the predict set.
+
+    #     :param batch: A batch of data (a tuple) containing (in order) the input tensor, target
+    #         labels, prediction longitudes, and prediction latitudes.
+    #     :param batch_idx: The index of the current batch.
+
+    #     :return: A tensor containing (in order):
+    #         - Prediction Longitude
+    #         - Prediction Latitude
+    #         - Prediction Likelihood
+    #         - Prediction Uncertainty
+    #         - Prediction Feature Attributions
+    #     """
+
+    #     # extracts feature attributions
+    #     if self.hparams.extract_attributions:
+    #         ig = IntegratedGradients(self.net)
+    #         attribution = ig.attribute(batch[0].requires_grad_(), n_steps=12).mean(dim=(-1,-2)).detach()
+
+    #     # enables Monte Carlo Dropout
+    #     if self.hparams.mc_samples > 1:
+    #         self.net.activate_dropout()
+
+    #     # generates MC samples
+    #     preds = torch.sigmoid(
+    #         self.calibrated_forward(
+    #             batch[0].tile((self.hparams.mc_samples,1,1,1))
+    #         ).reshape(self.hparams.mc_samples,-1)
+    #     ).detach()
+
+    #     # computes mean and std of MC samples
+    #     means = preds.mean(dim=0).squeeze()
+    #     stds = preds.std(dim=0).squeeze()
+        
+    #     print("batch 2", batch[2].shape)
+    #     print("batch 3", batch[3].shape)
+    #     print("means", means.shape)
+    #     print("stds", stds.shape)
+        
+    #     results = torch.stack((batch[2], batch[3], means, stds), dim=-1)
+    #     if self.hparams.extract_attributions: results = torch.concat((results, attribution), dim=-1)
+    #     return results
+    
     def predict_step(self, batch: Tuple[torch.Tensor, torch.Tensor], batch_idx: int) -> None:
-        """Perform a single predict step on a batch of data from the predict set.
-
-        :param batch: A batch of data (a tuple) containing (in order) the input tensor, target
-            labels, prediction longitudes, and prediction latitudes.
-        :param batch_idx: The index of the current batch.
-
-        :return: A tensor containing (in order):
-            - Prediction Longitude
-            - Prediction Latitude
-            - Prediction Likelihood
-            - Prediction Uncertainty
-            - Prediction Feature Attributions
-        """
-
-        # extracts feature attributions
-        if self.hparams.extract_attributions:
-            ig = IntegratedGradients(self.net)
-            attribution = ig.attribute(batch[0].requires_grad_(), n_steps=12).mean(dim=(-1,-2)).detach()
-
-        # enables Monte Carlo Dropout
-        if self.hparams.mc_samples > 1:
-            self.net.activate_dropout()
 
         # generates MC samples
-        preds = torch.sigmoid(
-            self.calibrated_forward(
-                batch[0].tile((self.hparams.mc_samples,1,1,1))
-            ).reshape(self.hparams.mc_samples,-1)
-        ).detach()
-
-        # computes mean and std of MC samples
-        means = preds.mean(dim=0).squeeze()
-        stds = preds.std(dim=0).squeeze()
-
-        results = torch.stack((batch[2], batch[3], means, stds), dim=-1)
-        if self.hparams.extract_attributions: results = torch.concat((results, attribution), dim=-1)
-        return results
+        preds = self.net.forward_feats(batch[0])
+        lons = batch[2].unsqueeze(1)
+        lats = batch[3].unsqueeze(1) 
+        return  torch.cat([lons, lats, preds], dim=1)
+    
 
     def on_predict_epoch_end(self, results):
         results = torch.concat(results[0]).cpu().numpy()
-        cols = ["lon","lat","mean","std"] + [f"attr{n}" for n in range(results.shape[-1]-4)]
+        cols = ["lon", "lat"] + [f"feat_{n}" for n in range(results.shape[-1]-2)]
         res_df = pd.DataFrame(data=results, columns=cols)
-        res_df.to_csv(f"gpu_{self.trainer.strategy.global_rank}_result.csv",index=False)
+        res_df.to_csv(f"gpu_{self.trainer.strategy.global_rank}_result.csv", index=False)
         self.trainer.strategy.barrier()
+
+        
+    # def on_predict_epoch_end(self, results):
+    #     results = torch.concat(results[0]).cpu().numpy()
+    #     cols = ["lon","lat","mean","std"] + [f"attr{n}" for n in range(results.shape[-1]-4)]
+    #     res_df = pd.DataFrame(data=results, columns=cols)
+    #     res_df.to_csv(f"gpu_{self.trainer.strategy.global_rank}_result.csv",index=False)
+    #     self.trainer.strategy.barrier()
 
         # TODO DEBUG following
         # if self.trainer.strategy.world_size > 1:
