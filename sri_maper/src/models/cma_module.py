@@ -282,15 +282,23 @@ class CMALitModule(LightningModule):
     def predict_step(self, batch: Tuple[torch.Tensor, torch.Tensor], batch_idx: int) -> None:
 
         # generates MC samples
-        preds = self.net.forward_feats(batch[0])
+        out_feats = self.net.forward_feats(batch[0])
+        
         lons = batch[2].unsqueeze(1)
-        lats = batch[3].unsqueeze(1) 
-        return  torch.cat([lons, lats, preds], dim=1)
+        lats = batch[3].unsqueeze(1)
+        labs = batch[1].unsqueeze(1) 
+        
+        
+        # batch[0] are the features, are bs x 77 x window x window -> bs x (yy*window*window)
+        in_feats = batch[0].reshape(batch[0].shape[0], -1)
+        return torch.cat([lons, lats, labs, in_feats, out_feats], dim=1)
     
 
     def on_predict_epoch_end(self, results):
         results = torch.concat(results[0]).cpu().numpy()
-        cols = ["lon", "lat"] + [f"feat_{n}" for n in range(results.shape[-1]-2)]
+        in_feats_ct = 77*5*5
+        out_feats_ct = results.shape[-1]-3-in_feats_ct
+        cols = ["lon", "lat", "labs"] + [f"infeat_{n}" for n in range(in_feats_ct)] + [f"srifeat_{n}" for n in range(out_feats_ct)]
         res_df = pd.DataFrame(data=results, columns=cols)
         res_df.to_csv(f"gpu_{self.trainer.strategy.global_rank}_result.csv", index=False)
         self.trainer.strategy.barrier()
