@@ -26,11 +26,17 @@ import matplotlib.pyplot as plt
 def prep_df(df):
     n_row = df.shape[0]
     df    = df.drop_duplicates().reset_index(drop=True)
+    
     # if df.shape[0] != n_row:
     #     print(f'!! dropped {n_row - df.shape[0]} rows')
     
-    assert (df.lon.apply(int) == df.lon).all()
-    assert (df.lat.apply(int) == df.lat).all()
+    _lon = df.lon.apply(int)
+    _lat = df.lat.apply(int)
+    assert (_lon == df.lon).all()
+    assert (_lat == df.lat).all()
+    df.lon = _lon
+    df.lat = _lat
+
     df['hash'] = df[['lon', 'lat']].apply(lambda x: hash(tuple(x)), axis=1)
     
     return df
@@ -72,42 +78,7 @@ target_str, target_name  = TARGETS[args.target_idx]
 # --
 # Load features (computed by Jataware)
 
-df = pd.read_feather(f'maps/{target_str}.feather')
-df = prep_df(df)
-
-# --
-# Original train/test splits
-
-root = Path("/home/paperspace/data/sri/maps/") / target_name
-
-o_train = prep_df(pd.read_csv(root / 'train.csv'))
-o_valid = prep_df(pd.read_csv(root / 'valid.csv'))
-o_test  = prep_df(pd.read_csv(root / 'test.csv'))
-
-df['o_train'] = df.hash.isin(o_train.hash)
-df['o_valid'] = df.hash.isin(o_valid.hash)
-df['o_test']  = df.hash.isin(o_test.hash)
-df['o_sel']   = df.o_train | df.o_valid | df.o_test
-
-# --
-# Add SRI's likelihoods
-
-L = tiffread(root / args.model_type / 'Likelihoods.tif')
-
-# <<
-# [HACK] should really do this with GDAL
-from scipy.stats import linregress
-lr_x = linregress(o_train.lon, o_train.x)
-assert (lr_x.intercept + lr_x.slope * o_train.lon - o_train.x).abs().max() < 1e-10
-df['c'] = (lr_x.intercept + lr_x.slope * df.lon).round().astype(int)
-
-lr_y = linregress(o_train.lat, o_train.y)
-assert (lr_y.intercept + lr_y.slope * o_train.lat - o_train.y).abs().max() < 1e-10
-df['r'] = (lr_y.intercept + lr_y.slope * df.lat).round().astype(int)
-# >>
-
-df['sri_score'] = L[(df.r.values, df.c.values)]
-df = df[df.sri_score.notnull()].reset_index(drop=True)
+df = pd.read_feather(f'maps_prepped/{target_str}.feather')
 
 # --
 # Features
@@ -139,37 +110,31 @@ elif args.split == 'random':
 # [NOTE] "validation" split is _everything_ except the training positives
 #        because those are the only points for which we have labels.
 
-val_sel = np.setdiff1d(idx, pos_sel)
-neg_sel = np.random.choice(np.setdiff1d(idx, pos_sel), args.n_neg, replace=False)
+neg_sel   = np.random.choice(np.setdiff1d(idx, pos_sel), args.n_neg, replace=False)
 
-X_train = np.row_stack([
-    X[pos_sel],
-    X[neg_sel],
-])
+train_sel = np.sort(np.hstack([pos_sel, neg_sel]))
+valid_sel = np.setdiff1d(idx, pos_sel)
 
-E_train = np.row_stack([
-    E[pos_sel],
-    E[neg_sel],
-])
+X_train = X[train_sel]
+E_train = E[train_sel]
+y_train = y[train_sel]
+y_valid = y[valid_sel]
 
-y_train = np.concatenate([
-    np.ones(args.n_pos),
-    np.zeros(args.n_neg),
-])
-
-y_valid = y[val_sel]
+breakpoint()
 
 # --
 # Fit model
 
-rf_x  = RandomForestClassifier(n_estimators=1024, n_jobs=-1, verbose=1).fit(X_train, y_train)
-rf_xc = RandomForestClassifier(n_estimators=1024, n_jobs=-1, verbose=1).fit(X_train[:,12::25], y_train)
-rf_e  = RandomForestClassifier(n_estimators=1024, n_jobs=-1, verbose=1).fit(E_train, y_train)
+from cuml.ensemble import RandomForestClassifier as cuRandomForestClassifier
 
-p_x  = rf_x.predict_proba(X)[val_sel,1]
-p_xc = rf_xc.predict_proba(X[:,12::25])[val_sel,1]
-p_e  = rf_e.predict_proba(E)[val_sel,1]
-p_o  = df.sri_score.values[val_sel]
+rf_x  = cuRandomForestClassifier(n_estimators=1024, n_jobs=-1, verbose=1).fit(X_train, y_train)
+rf_xc = cuRandomForestClassifier(n_estimators=1024, n_jobs=-1, verbose=1).fit(X_train[:,12::25], y_train)
+rf_e  = cuRandomForestClassifier(n_estimators=1024, n_jobs=-1, verbose=1).fit(E_train, y_train)
+
+p_x  = rf_x.predict_proba(X)[valid_sel,1]
+p_xc = rf_xc.predict_proba(X[:,12::25])[valid_sel,1]
+p_e  = rf_e.predict_proba(E)[valid_sel,1]
+p_o  = df.sri_score.values[valid_sel]
 
 # --
 # Plot

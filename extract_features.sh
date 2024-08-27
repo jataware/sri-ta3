@@ -92,3 +92,18 @@ python sri_maper/src/map.py trainer=gpu logger=csv data.batch_size=$BS enable_at
     ckpt_path=sri_maper/ckpts/smidcont_mvt_mae.ckpt
 
 mv gpu_0_result.feather maps/smidcont_mvt_mae.feather
+
+
+# --
+# Clean .feather outputs
+
+python prep.py maps/natl_w_mae.feather
+python prep.py maps/natl_cu_mae.feather
+python prep.py maps/ytu_w_mae.feather
+python prep.py maps/smidcont_mvt_mae.feather
+python prep.py maps/umidwest_mamanico_mae.feather
+python prep.py maps/natl_mvt_mae.feather
+python prep.py maps/natl_maniac_mae.feather
+
+
+
