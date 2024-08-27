@@ -1,20 +1,6 @@
-python sri_maper/src/pretrain.py \
-    experiment=natl_mvt/exp_maevit_pretrain_l22_uscont
+#!/bin/bash
 
-python sri_maper/src/train.py \
-    experiment=natl_mvt/exp_mvt_maevit_classifier_l22_uscont \
-    model.net.backbone_ckpt=logs/maevit_pretrain_l22_uscont/checkpoints/last.ckpt
-
-python sri_mapper/src/test.py
-
-python sri_maper/src/map.py \
-    experiment=natl_mvt/exp_maevit_pretrain_l22_uscont \
-    data.batch_size=128 \
-    enable_attributions=True \
-    ckpt_path=logs/maevit_pretrain_l22_uscont/checkpoints/last.ckpt
-    
-
-# --
+# extract_features.sh
 
 # conda activate sri_env
 
@@ -23,27 +9,25 @@ ln -s \
     $(pwd)/data/raster_libraries/
 
 ln -s \
+    /home/paperspace/data/sri/input_data/smidcont_mvt_raster_library/ \
+    $(pwd)/data/raster_libraries/
+
+ln -s \
+    /home/paperspace/data/sri/input_data/umidwest_mamanico_raster_library/ \
+    $(pwd)/data/raster_libraries/
+
+ln -s \
+    /home/paperspace/data/sri/input_data/ytu_tungsten-skarn_raster_library/ \
+    $(pwd)/data/raster_libraries/
+
+ln -s \
     /home/paperspace/data/sri/models/* \
     $(pwd)/sri_maper/ckpts/
 
-# resnet
-# python sri_maper/src/map.py \
-#     experiment=natl_mvt/exp_mvt_resnet_l22_uscont \
-#     data.batch_size=128 \
-#     enable_attributions=True \
-#     ckpt_path=sri_maper/ckpts/natl_mvt_resnet.ckpt
-
-# !! 
-python sri_maper/src/map.py \
-    experiment=exp_mvt_maevit_classifier_l22_uscont \
-    model.net.backbone_ckpt=sri_maper/ckpts/natl_pretrain.ckpt \
-    data.batch_size=64 \
-    enable_attributions=True \
-    ckpt_path=sri_maper/ckpts/natl_mvt_mae.ckpt
-
-
 
 # --
+
+mkdir -p maps
 
 BS=64
 
@@ -108,11 +92,3 @@ python sri_maper/src/map.py trainer=gpu logger=csv data.batch_size=$BS enable_at
     ckpt_path=sri_maper/ckpts/smidcont_mvt_mae.ckpt
 
 mv gpu_0_result.feather maps/smidcont_mvt_mae.feather
-
-  
-# find ./ -type f | fgrep exp_maniac_maevit_classifier_l22_uscont
-# find ./ -type f | fgrep exp_w_maevit_classifier_l22_uscont
-# find ./ -type f | fgrep exp_cu_maevit_classifier_l22_uscont
-# find ./ -type f | fgrep exp_mamanico_maevit_classifier_umidwest
-# find ./ -type f | fgrep exp_w_maevit_classifier_ytu
-# find ./ -type f | fgrep exp_mvt_maevit_classifier_smidcont
