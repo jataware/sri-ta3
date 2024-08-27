@@ -234,60 +234,91 @@ class CMALitModule(LightningModule):
     def on_test_epoch_end(self) -> None:
         """Lightning hook that is called when a test epoch ends."""
         pass
+    
+    # <<
+    # def predict_step(self, batch: Tuple[torch.Tensor, torch.Tensor], batch_idx: int) -> None:
+    #     """Perform a single predict step on a batch of data from the predict set.
 
+    #     :param batch: A batch of data (a tuple) containing (in order) the input tensor, target
+    #         labels, prediction longitudes, and prediction latitudes.
+    #     :param batch_idx: The index of the current batch.
+
+    #     :return: A tensor containing (in order):
+    #         - Prediction Longitude
+    #         - Prediction Latitude
+    #         - Prediction Likelihood
+    #         - Prediction Uncertainty
+    #         - Prediction Feature Attributions
+    #     """
+
+    #     # extracts feature attributions
+    #     if self.hparams.extract_attributions:
+    #         ig = IntegratedGradients(self.net)
+    #         attribution = ig.attribute(batch[0].requires_grad_(), n_steps=12).mean(dim=(-1,-2)).detach()
+
+    #     # enables Monte Carlo Dropout
+    #     if self.hparams.mc_samples > 1:
+    #         self.net.activate_dropout()
+
+    #     # generates MC samples
+    #     preds = torch.sigmoid(
+    #         self.calibrated_forward(
+    #             batch[0].tile((self.hparams.mc_samples,1,1,1))
+    #         ).reshape(self.hparams.mc_samples,-1)
+    #     ).detach()
+
+    #     # computes mean and std of MC samples
+    #     means = preds.mean(dim=0).squeeze()
+    #     stds = preds.std(dim=0).squeeze()
+
+    #     results = torch.stack((batch[2], batch[3], means, stds), dim=-1)
+    #     if self.hparams.extract_attributions: results = torch.concat((results, attribution), dim=-1)
+    #     return results
+    # --
     def predict_step(self, batch: Tuple[torch.Tensor, torch.Tensor], batch_idx: int) -> None:
-        """Perform a single predict step on a batch of data from the predict set.
-
-        :param batch: A batch of data (a tuple) containing (in order) the input tensor, target
-            labels, prediction longitudes, and prediction latitudes.
-        :param batch_idx: The index of the current batch.
-
-        :return: A tensor containing (in order):
-            - Prediction Longitude
-            - Prediction Latitude
-            - Prediction Likelihood
-            - Prediction Uncertainty
-            - Prediction Feature Attributions
-        """
-
-        # extracts feature attributions
-        if self.hparams.extract_attributions:
-            ig = IntegratedGradients(self.net)
-            attribution = ig.attribute(batch[0].requires_grad_(), n_steps=12).mean(dim=(-1,-2)).detach()
-
-        # enables Monte Carlo Dropout
-        if self.hparams.mc_samples > 1:
-            self.net.activate_dropout()
-
         # generates MC samples
-        preds = torch.sigmoid(
-            self.calibrated_forward(
-                batch[0].tile((self.hparams.mc_samples,1,1,1))
-            ).reshape(self.hparams.mc_samples,-1)
-        ).detach()
+        out_feats = self.net.forward_feats(batch[0])
 
-        # computes mean and std of MC samples
-        means = preds.mean(dim=0).squeeze()
-        stds = preds.std(dim=0).squeeze()
+        # batch[0] are the features, are bs x 77 x window x window -> bs x (yy*window*window)
+        in_feats = batch[0].reshape(batch[0].shape[0], -1)
+        labs     = batch[1].unsqueeze(1)
+        lons     = batch[2].unsqueeze(1)
+        lats     = batch[3].unsqueeze(1)
+        
+        self._in_feats_count = in_feats.shape[1]
+        
+        return torch.cat([lons, lats, labs, in_feats, out_feats], dim=1)
+    # >>
+    
+    # <<
+    # def on_predict_epoch_end(self, results):
+    #     results = torch.concat(results[0]).cpu().numpy()
+    #     cols = ["lon","lat","mean","std"] + [f"attr{n}" for n in range(results.shape[-1]-4)]
+    #     res_df = pd.DataFrame(data=results, columns=cols)
+    #     res_df.to_csv(f"gpu_{self.trainer.strategy.global_rank}_result.csv", index=False)
+    #     self.trainer.strategy.barrier()
 
-        results = torch.stack((batch[2], batch[3], means, stds), dim=-1)
-        if self.hparams.extract_attributions: results = torch.concat((results, attribution), dim=-1)
-        return results
-
+    #     # TODO DEBUG following
+    #     # if self.trainer.strategy.world_size > 1:
+    #         # num_dims = results.shape[-1]
+    #         # results = self.all_gather(results).reshape((-1,num_dims))
+    #     # if self.trainer.strategy.global_rank == 0:
+    #         # self.trainer.results = results.cpu().numpy()
+    # --
     def on_predict_epoch_end(self, results):
-        results = torch.concat(results[0]).cpu().numpy()
-        cols = ["lon","lat","mean","std"] + [f"attr{n}" for n in range(results.shape[-1]-4)]
+        results      = torch.concat(results[0]).cpu().numpy()
+        in_feats_ct  = self._in_feats_count
+        out_feats_ct = results.shape[-1] - 3 - in_feats_ct
+        cols = ["lon", "lat", "labs"] + [f"infeat_{n}" for n in range(in_feats_ct)] + [f"srifeat_{n}" for n in range(out_feats_ct)]
         res_df = pd.DataFrame(data=results, columns=cols)
-        res_df.to_csv(f"gpu_{self.trainer.strategy.global_rank}_result.csv",index=False)
+        # <<
+        # res_df.to_csv(f"gpu_{self.trainer.strategy.global_rank}_result.csv", index=False)
+        # --
+        res_df.to_feather(f"gpu_{self.trainer.strategy.global_rank}_result.feather", compression='zstd')
+        # >>
         self.trainer.strategy.barrier()
-
-        # TODO DEBUG following
-        # if self.trainer.strategy.world_size > 1:
-            # num_dims = results.shape[-1]
-            # results = self.all_gather(results).reshape((-1,num_dims))
-        # if self.trainer.strategy.global_rank == 0:
-            # self.trainer.results = results.cpu().numpy()
-
+    # >>
+    
     def setup(self, stage: str) -> None:
         """Lightning hook that is called at the beginning of fit (train + validate), validate,
         test, or predict.

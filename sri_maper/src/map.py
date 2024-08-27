@@ -77,16 +77,22 @@ def build_map(cfg: DictConfig) -> Tuple[dict, dict]:
     
     log.info(f"GPU:{trainer.strategy.global_rank} finished!")
     map_paths = None
+    
     if trainer.strategy.global_rank == 0:
         log.info(f"GPU:{trainer.strategy.global_rank} is outputting map GeoTiff!")
         # read all GPU CSVs
-        res_df = []
-        for n in range(trainer.strategy.world_size):
-            res_df.append(pd.read_csv(f"gpu_{n}_result.csv", index_col=False))
-        res_df = pd.concat(res_df, ignore_index=True)
+        # <<
+        # res_df = []
+        # for n in range(trainer.strategy.world_size):
+        #     res_df.append(pd.read_csv(f"gpu_{n}_result.csv", index_col=False))
+        # res_df = pd.concat(res_df, ignore_index=True)
         
-        tif_file_path = f"{cfg.paths.output_dir}"
-        map_paths = utils.write_tif(res_df.values, tif_file_path, cfg.enable_attributions, datamodule)
+        # tif_file_path = f"{cfg.paths.output_dir}"
+        # map_paths = utils.write_tif(res_df.values, tif_file_path, cfg.enable_attributions, datamodule)
+        # --
+        log.info('========= SKIPPED =========')
+        # >>
+    
 
     return map_paths, object_dict
 

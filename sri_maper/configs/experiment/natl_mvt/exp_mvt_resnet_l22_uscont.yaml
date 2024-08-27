@@ -3,7 +3,7 @@
 defaults:
   - override /preprocess: mvt-natl.yaml
   - override /model: resnet.yaml
-  - override /trainer: ddp
+  - override /trainer: gpu
   - override /callbacks: default.yaml
 
 # all parameters below will be merged with parameters from default configurations set above

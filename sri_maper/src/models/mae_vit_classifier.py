@@ -53,6 +53,12 @@ class CLSClassifier(torch.nn.Module):
 
         return features
 
+    def forward_feats(self, img):
+        # extracts features
+        features, _, _ = self.backbone(img)
+        # classfies the CLS token features
+        return features[:,0,:]
+
     def activate_dropout(self):
         for m in self.ff:
             if m.__class__.__name__.startswith('Dropout'):
