@@ -49,20 +49,23 @@ def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument('--target_idx', type=int, default=0)
     parser.add_argument('--seed',       type=int, default=123)
+    parser.add_argument('--n_neg',      type=int, default=10_000)
+    parser.add_argument('--n_pos',      type=int, default=None)
+    parser.add_argument('--n_viz',      type=int, default=160_000)
+    parser.add_argument('--splits',     type=str, default='orig')
     args = parser.parse_args()
     
+    args.target_str, args.target_name = TARGETS[args.target_idx]
     args.model_type = 'MAE'
+    print(f'target={args.target_str, args.target_name}')
     return args
 
 args = parse_args()
 np.random.seed(args.seed)
 os.makedirs('maps_prepped', exist_ok=True)
 
-target_str, target_name  = TARGETS[args.target_idx]
-print(f'target={(target_str, target_name)}')
-
-inpath  = f'maps/{target_str}.feather'
-outpath = f'maps_prepped/{target_str}.feather'
+inpath  = f'maps/{args.target_str}.feather'
+outpath = f'maps_prepped/{args.target_str}.feather'
 
 # --
 # Load features (computed by Jataware)
@@ -73,7 +76,7 @@ df = prep_df(df)
 # --
 # Original train/test splits
 
-root = Path("/home/paperspace/data/sri/maps/") / target_name
+root = Path("/home/paperspace/data/sri/maps/") / args.target_name
 
 o_train = prep_df(pd.read_csv(root / 'train.csv'))
 o_valid = prep_df(pd.read_csv(root / 'valid.csv'))
@@ -90,7 +93,7 @@ df['o_sel']   = df.o_train | df.o_valid | df.o_test
 L = tiffread(root / args.model_type / 'Likelihoods.tif')
 
 # <<
-# [HACK] should really do this with GDAL
+# [HACK] should really do this with GDAL ... but I hate GDAL
 from scipy.stats import linregress
 lr_x = linregress(o_train.lon, o_train.x)
 assert (lr_x.intercept + lr_x.slope * o_train.lon - o_train.x).abs().max() < 1e-10

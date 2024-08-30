@@ -95,15 +95,26 @@ mv gpu_0_result.feather maps/smidcont_mvt_mae.feather
 
 
 # --
-# Clean .feather outputs
+# Prep outputs, including:
+# - deduplicate
+# - fix types
+# - merge SRI's Sharepoint Likelihood maps
 
-python prep.py maps/natl_w_mae.feather
-python prep.py maps/natl_cu_mae.feather
-python prep.py maps/ytu_w_mae.feather
-python prep.py maps/smidcont_mvt_mae.feather
-python prep.py maps/umidwest_mamanico_mae.feather
-python prep.py maps/natl_mvt_mae.feather
-python prep.py maps/natl_maniac_mae.feather
+python prep.py --target_idx 0
+python prep.py --target_idx 1
+python prep.py --target_idx 2
+python prep.py --target_idx 3
+python prep.py --target_idx 4
+python prep.py --target_idx 5
+python prep.py --target_idx 6
 
+# --
+# Run w/ random_splits, 
 
-
+python random_splits.py --target_idx 0
+python random_splits.py --target_idx 1
+python random_splits.py --target_idx 2
+python random_splits.py --target_idx 3
+python random_splits.py --target_idx 4
+python random_splits.py --target_idx 5
+python random_splits.py --target_idx 6
