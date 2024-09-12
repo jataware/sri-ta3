@@ -125,7 +125,7 @@ setup(
         "tqdm",
         "pandas",
         "glob2",
-        "numpy",
+        "numpy<2.0",
         "captum",
         "jupyterlab",
         "ipywidgets",

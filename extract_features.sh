@@ -2,28 +2,22 @@
 
 # extract_features.sh
 
+# conda create -y -n sri_env python=3.10
 # conda activate sri_env
+# pip install -e .
 
-ln -s \
-    /home/paperspace/data/sri/input_data/national_scale_raster_library/ \
-    $(pwd)/data/raster_libraries/
+# --
+# Set up paths
 
-ln -s \
-    /home/paperspace/data/sri/input_data/smidcont_mvt_raster_library/ \
-    $(pwd)/data/raster_libraries/
+# SRI_DATA_ROOT="/home/paperspace/data/sri"
+SRI_DATA_ROOT="/home/ubuntu/data/cmaas/sri_data/"
 
-ln -s \
-    /home/paperspace/data/sri/input_data/umidwest_mamanico_raster_library/ \
-    $(pwd)/data/raster_libraries/
+ln -s $SRI_DATA_ROOT/input_data/national_scale_raster_library/     $(pwd)/data/raster_libraries/
+ln -s $SRI_DATA_ROOT/input_data/smidcont_mvt_raster_library/       $(pwd)/data/raster_libraries/
+ln -s $SRI_DATA_ROOT/input_data/umidwest_mamanico_raster_library/  $(pwd)/data/raster_libraries/
+ln -s $SRI_DATA_ROOT/input_data/ytu_tungsten-skarn_raster_library/ $(pwd)/data/raster_libraries/
 
-ln -s \
-    /home/paperspace/data/sri/input_data/ytu_tungsten-skarn_raster_library/ \
-    $(pwd)/data/raster_libraries/
-
-ln -s \
-    /home/paperspace/data/sri/models/* \
-    $(pwd)/sri_maper/ckpts/
-
+ln -s $SRI_DATA_ROOT/models/* $(pwd)/sri_maper/ckpts/
 
 # --
 
